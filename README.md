@@ -1,4 +1,4 @@
-# Breakout Board
+# 4 Hour Algorithm Breakouts
 
 A free, always-on website that scans 100 of the largest US stocks on 4-hour candles four times each trading day and ranks them by momentum-breakout setup.
 
