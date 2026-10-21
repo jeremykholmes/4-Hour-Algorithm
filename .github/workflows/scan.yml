@@ -1,0 +1,71 @@
+name: Scan and publish
+
+on:
+  schedule:
+    # Times are UTC. Every 4 hours on weekdays, plus Saturday 00:17 UTC to
+    # pick up Friday's close. If you change these, update SCHEDULE in docs/index.html.
+    - cron: "17 */4 * * 1-5"
+    - cron: "17 0 * * 6"
+  workflow_dispatch: {}   # adds a "Run workflow" button on the Actions tab
+  push:                   # republish the site when you edit the page
+    branches: [main]
+    paths: ["docs/**"]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run scan
+        env:
+          TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+          CALLS_PER_MINUTE: ${{ vars.CALLS_PER_MINUTE || '8' }}
+        run: node scripts/scan.mjs
+
+      - name: Save results to the repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data/latest.json
+          if git diff --cached --quiet; then
+            echo "No change in results."
+            exit 0
+          fi
+          git commit -m "Scan $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git pull --rebase --autostash
+          git push
+
+  deploy:
+    needs: scan
+    # Runs after a successful scan, or on its own when you push a page edit.
+    # If a scan fails, this is skipped and the previous results stay online.
+    if: always() && (needs.scan.result == 'success' || needs.scan.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref_name }}   # the branch head, including the results just committed
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
