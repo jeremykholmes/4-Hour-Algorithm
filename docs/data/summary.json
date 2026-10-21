@@ -1,0 +1,163 @@
+{
+ "generatedAt": "2026-10-21T04:43:47.217Z",
+ "source": "live",
+ "lastCandle": "2026-10-20 13:30:00",
+ "scored": 100,
+ "requested": 100,
+ "counts": {
+  "breakout": 2,
+  "setup": 17,
+  "watch": 33,
+  "none": 48
+ },
+ "breakouts": [
+  {
+   "sym": "IBM",
+   "score": 80,
+   "price": 242.02,
+   "chg": 0.79,
+   "entry": 242.02,
+   "stop": 234.03,
+   "target": 258.01,
+   "rsi": 70.8,
+   "rvol": 0.83,
+   "distFromHigh": 0.3
+  },
+  {
+   "sym": "ADBE",
+   "score": 75,
+   "price": 256.78,
+   "chg": 0.66,
+   "entry": 256.78,
+   "stop": 246.1,
+   "target": 278.15,
+   "rsi": 67.7,
+   "rvol": 0.61,
+   "distFromHigh": 0.11
+  }
+ ],
+ "settingUp": [
+  {
+   "sym": "SYK",
+   "score": 66,
+   "price": 304.43,
+   "chg": -0.03,
+   "entry": 304.43,
+   "stop": 294.25,
+   "target": 324.79,
+   "rsi": 75.2,
+   "rvol": 1.66,
+   "distFromHigh": -0.03
+  },
+  {
+   "sym": "MRK",
+   "score": 65,
+   "price": 148.31,
+   "chg": 0.22,
+   "entry": 148.31,
+   "stop": 143.12,
+   "target": 158.68,
+   "rsi": 56.7,
+   "rvol": 1.61,
+   "distFromHigh": -2.65
+  },
+  {
+   "sym": "ICE",
+   "score": 64,
+   "price": 158.61,
+   "chg": 0.95,
+   "entry": 158.61,
+   "stop": 154.14,
+   "target": 167.55,
+   "rsi": 57,
+   "rvol": 2.37,
+   "distFromHigh": -1.9
+  },
+  {
+   "sym": "ISRG",
+   "score": 63,
+   "price": 438.02,
+   "chg": -0.31,
+   "entry": 438.02,
+   "stop": 425.12,
+   "target": 463.81,
+   "rsi": 69,
+   "rvol": 1.08,
+   "distFromHigh": -0.31
+  },
+  {
+   "sym": "PFE",
+   "score": 63,
+   "price": 30.13,
+   "chg": 0.05,
+   "entry": 30.13,
+   "stop": 29.37,
+   "target": 31.65,
+   "rsi": 71.8,
+   "rvol": 0.64,
+   "distFromHigh": -0.33
+  },
+  {
+   "sym": "SPGI",
+   "score": 62,
+   "price": 438.18,
+   "chg": 0.37,
+   "entry": 438.18,
+   "stop": 426.77,
+   "target": 460.99,
+   "rsi": 77.8,
+   "rvol": 1.81,
+   "distFromHigh": -0.2
+  },
+  {
+   "sym": "UNP",
+   "score": 62,
+   "price": 287.71,
+   "chg": -0.01,
+   "entry": 287.71,
+   "stop": 281.94,
+   "target": 299.27,
+   "rsi": 65.2,
+   "rvol": 1.79,
+   "distFromHigh": -1.44
+  },
+  {
+   "sym": "CMCSA",
+   "score": 62,
+   "price": 22.39,
+   "chg": 1.06,
+   "entry": 22.39,
+   "stop": 21.6,
+   "target": 23.97,
+   "rsi": 63.9,
+   "rvol": 1.41,
+   "distFromHigh": -0.09
+  },
+  {
+   "sym": "AMGN",
+   "score": 60,
+   "price": 438.95,
+   "chg": 0.8,
+   "entry": 438.95,
+   "stop": 425.29,
+   "target": 466.27,
+   "rsi": 65.1,
+   "rvol": 0.87,
+   "distFromHigh": -0.64
+  },
+  {
+   "sym": "NEE",
+   "score": 60,
+   "price": 78.89,
+   "chg": -0.09,
+   "entry": 78.89,
+   "stop": 77.2,
+   "target": 82.27,
+   "rsi": 55.8,
+   "rvol": 2.04,
+   "distFromHigh": -1.71
+  }
+ ],
+ "failed": [],
+ "site": "https://jeremykholmes.github.io/4-Hour-Algorithm/"
+}

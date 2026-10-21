@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "docs", "data", "latest.json");
+const SUMMARY = join(ROOT, "docs", "data", "summary.json");   // small digest for emails/alerts
 const BARS = 150;          // candles requested per stock
 const KEEP = 90;           // candles kept in the JSON for charts
 const SAMPLE = process.argv.includes("--sample");
@@ -128,6 +129,23 @@ function sampleBars(sym) {
   return out;
 }
 
+// Small digest of the scan: counts, every breakout, and the top setting-up stocks.
+function summarize(out) {
+  const ok = out.results.filter(r => r.tier !== "error").sort((a, b) => b.score - a.score);
+  const pick = r => ({ sym: r.sym, score: r.score, price: r.price, chg: r.chg, entry: r.entry, stop: r.stop, target: r.target, rsi: r.rsi, rvol: r.rvol, distFromHigh: r.dist });
+  const counts = { breakout: 0, setup: 0, watch: 0, none: 0 };
+  ok.forEach(r => counts[r.tier]++);
+  return {
+    generatedAt: out.generatedAt, source: out.source, lastCandle: ok.length ? ok[0].lastTime : null,
+    scored: out.ok, requested: out.requested, counts,
+    breakouts: ok.filter(r => r.tier === "breakout").map(pick),
+    settingUp: ok.filter(r => r.tier === "setup").slice(0, 10).map(pick),
+    failed: out.results.filter(r => r.tier === "error").map(r => r.sym),
+    site: "https://jeremykholmes.github.io/4-Hour-Algorithm/",
+  };
+}
+export { summarize };
+
 // ---------- main ----------
 function loadSymbols() {
   const txt = readFileSync(join(ROOT, "symbols.txt"), "utf8");
@@ -172,8 +190,9 @@ async function main() {
   };
   if (!existsSync(dirname(OUT))) mkdirSync(dirname(OUT), { recursive: true });
   writeFileSync(OUT, JSON.stringify(out));
+  writeFileSync(SUMMARY, JSON.stringify(summarize(out), null, 1));
   const counts = results.reduce((m, r) => (m[r.tier] = (m[r.tier] || 0) + 1, m), {});
   console.log(`Done. ${ok}/${syms.length} scored.`, counts);
 }
 
-main();
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();
