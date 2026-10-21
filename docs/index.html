@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Breakout Board</title>
-<meta name="description" content="Momentum-breakout scan on 4-hour candles across 100 of the largest US stocks, refreshed every 4 hours.">
+<meta name="description" content="Momentum-breakout scan on 4-hour candles across 100 of the largest US stocks, refreshed through the trading day.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232c49c7'/%3E%3Cpath d='M6 22l6-6 4 4 9-10' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -117,7 +117,7 @@ footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padd
   <header class="top">
     <div>
       <h1>Breakout Board</h1>
-      <p>Momentum-breakout scan on 4-hour candles across 100 of the largest US stocks. Ranked by a 0–100 setup score and refreshed automatically every 4 hours.</p>
+      <p>Momentum-breakout scan on 4-hour candles across 100 of the largest US stocks. Ranked by a 0–100 setup score and refreshed automatically four times each trading day.</p>
     </div>
     <div class="label" id="asof"></div>
   </header>
@@ -183,9 +183,10 @@ footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padd
 <script>
 (() => {
 const DATA_URL = "data/latest.json";
-// Must match the cron lines in .github/workflows/scan.yml (UTC).
-// Mon–Fri at :17 past 00,04,08,12,16,20 UTC, plus Saturday 00:17 UTC.
-const SCHEDULE = { minute: 17, hours: [0,4,8,12,16,20], weekdays: [1,2,3,4,5], extra: [[6,0]] };
+// Must match the cron lines in .github/workflows/scan.yml.
+// Weekday scan start times in New York time, [hour, minute]; NYSE holidays are skipped.
+const SLOTS = [[11,35],[13,35],[15,35],[16,5]];
+const HOLIDAYS = ["2026-11-26","2026-12-25","2027-01-01","2027-01-18","2027-02-15","2027-03-26","2027-05-31","2027-06-18","2027-07-05","2027-09-06","2027-11-25","2027-12-24"];
 const SCAN_MINUTES = 15; // a free-plan scan takes ~13 min after it starts
 const TIERS = [["breakout","Breakouts","--up"],["setup","Setting up","--accent"],["watch","Watch","--warn"],["none","No signal","--muted"]];
 const TIER_LABEL = {breakout:"Breakout",setup:"Setting up",watch:"Watch",none:"No signal",error:"No data"};
@@ -199,13 +200,18 @@ function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",
 function timeStr(t){ return t? new Date(t).toLocaleString(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) : "—"; }
 function ago(t){ const m=Math.round((Date.now()-t)/6e4); if(m<1) return "just now"; if(m<60) return m+" min ago"; const h=Math.floor(m/60); if(h<48) return h+"h "+String(m%60).padStart(2,"0")+"m ago"; return Math.floor(h/24)+" days ago"; }
 
+const nyFmt = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
+function nyParts(t){ const o={}; nyFmt.formatToParts(t).forEach(p=>o[p.type]=p.value); return o; }
 function nextRun(from){
-  const d = new Date(from); d.setUTCSeconds(0,0);
-  for(let i=0;i<8*24*60;i+=60){
-    const t = new Date(d.getTime()); t.setUTCMinutes(SCHEDULE.minute); t.setTime(t.getTime()+i*6e4);
-    if(t<=from) continue;
-    const wd=t.getUTCDay(), h=t.getUTCHours();
-    if((SCHEDULE.weekdays.includes(wd) && SCHEDULE.hours.includes(h)) || SCHEDULE.extra.some(([w,hh])=>w===wd&&hh===h)) return t;
+  // Step through 5-minute marks (every slot falls on one) until a weekday, non-holiday slot matches.
+  let t = Math.ceil((+from+1)/3e5)*3e5;
+  for(let i=0;i<14*288;i++, t+=3e5){
+    const p = nyParts(t);
+    if(p.weekday==="Sat"||p.weekday==="Sun") continue;
+    const h=+p.hour, m=+p.minute;
+    if(!SLOTS.some(([sh,sm])=>sh===h&&sm===m)) continue;
+    if(HOLIDAYS.includes(`${p.year}-${p.month}-${p.day}`)) continue;
+    return new Date(t);
   }
   return null;
 }

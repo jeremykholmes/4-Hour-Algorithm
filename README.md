@@ -1,12 +1,12 @@
 # Breakout Board
 
-A free, always-on website that scans 100 of the largest US stocks on 4-hour candles every 4 hours and ranks them by momentum-breakout setup.
+A free, always-on website that scans 100 of the largest US stocks on 4-hour candles four times each trading day and ranks them by momentum-breakout setup.
 
 - **The scan** runs on GitHub Actions on a schedule. It pulls candles from Twelve Data, scores each stock, and saves `docs/data/latest.json`.
 - **The website** is GitHub Pages serving `docs/`. It reads the latest results, so anyone with the link sees them without logging in.
 - **Your Twelve Data API key** stays in GitHub's encrypted secrets. It never appears on the website.
 
-Cost: $0. Public repositories get unlimited Actions minutes, and 6 scans a day use 600 of the free Twelve Data plan's 800 daily calls.
+Cost: $0. Public repositories get unlimited Actions minutes, and 4 scans a day use 400 of the free Twelve Data plan's 800 daily calls.
 
 ## Setup (about 10 minutes)
 
@@ -43,15 +43,26 @@ After that it runs on its own.
 
 ## Schedule
 
-Every 4 hours on weekdays at :17 past 00, 04, 08, 12, 16 and 20 UTC, plus Saturday 00:17 UTC for Friday's close. In Arizona time that's 1:17, 5:17 and 9:17, both AM and PM, Monday through Friday. The 1:17 PM run lands just after the 4 PM Eastern close.
+Scans run on weekdays during US market hours, at these New York times:
+
+| New York | Arizona (until Nov 1) | Arizona (Nov 1 – Mar 7) | Why |
+|---|---|---|---|
+| 11:35 AM | 8:35 AM | 9:35 AM | Mid-morning |
+| 1:35 PM | 10:35 AM | 11:35 AM | First 4-hour candle has just closed |
+| 3:35 PM | 12:35 PM | 1:35 PM | Last half hour of trading |
+| 4:05 PM | 1:05 PM | 2:05 PM | Just after the close, so the day's final candle is scored |
+
+NYSE holidays and weekends are skipped, and New York daylight saving time is handled automatically. Each scan takes about 13 minutes, so results appear roughly 15 minutes after the start time. Four scans a day use 400 of the free plan's 800 daily Twelve Data calls, leaving room for manual runs.
+
+You can still scan any time from **Actions → Scan and publish → Run workflow**.
 
 GitHub sometimes starts scheduled runs 5–30 minutes late when it's busy. The site always shows when the last scan finished, and flags it if a scan looks overdue.
 
-To change the times, edit the `cron` lines in `.github/workflows/scan.yml` and the matching `SCHEDULE` line in `docs/index.html`.
+To change the times, edit the `cron` lines and the `gate` job in `.github/workflows/scan.yml`, and the matching `SLOTS` line in `docs/index.html`. The holiday list in both files covers through 2027.
 
 ## Changing the stock list
 
-Edit `symbols.txt` on GitHub (pencil icon) and commit. The next scan uses the new list. On the free plan, keep it under about 130 tickers, or the daily call limit runs out before the last scan of the day.
+Edit `symbols.txt` on GitHub (pencil icon) and commit. The next scan uses the new list. On the free plan, keep it under about 190 tickers, or the daily call limit runs out before the last scan of the day.
 
 If you upgrade your Twelve Data plan, add a repository **variable** (not secret) named `CALLS_PER_MINUTE` with your new limit to make scans faster.
 

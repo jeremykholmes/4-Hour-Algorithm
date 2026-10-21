@@ -2,10 +2,17 @@ name: Scan and publish
 
 on:
   schedule:
-    # Times are UTC. Every 4 hours on weekdays, plus Saturday 00:17 UTC to
-    # pick up Friday's close. If you change these, update SCHEDULE in docs/index.html.
-    - cron: "17 */4 * * 1-5"
-    - cron: "17 0 * * 6"
+    # US market hours only, weekdays, in New York time:
+    #   11:35 AM, 1:35 PM (first 4-hour candle closes), 3:35 PM,
+    #   and 4:05 PM (just after the close, so the day's final candle is scored).
+    # GitHub cron runs in UTC, so each time is listed for both daylight time
+    # (EDT, UTC-4) and standard time (EST, UTC-5). The "gate" job below
+    # skips whichever set doesn't match today's New York offset, and skips
+    # NYSE holidays. If you change these, update SLOTS in docs/index.html.
+    - cron: "35 15,17,19 * * 1-5"   # EDT: 11:35, 13:35, 15:35
+    - cron: "5 20 * * 1-5"          # EDT: 16:05
+    - cron: "35 16,18,20 * * 1-5"   # EST: 11:35, 13:35, 15:35
+    - cron: "5 21 * * 1-5"          # EST: 16:05
   workflow_dispatch: {}   # adds a "Run workflow" button on the Actions tab
   push:                   # republish the site when you edit the page
     branches: [main]
@@ -21,8 +28,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  gate:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - id: check
+        env:
+          SCHED: ${{ github.event.schedule }}
+        run: |
+          offset=$(TZ=America/New_York date +%z)
+          today=$(TZ=America/New_York date +%F)
+          case "$SCHED" in
+            "35 15,17,19 * * 1-5"|"5 20 * * 1-5") want="-0400" ;;
+            *) want="-0500" ;;
+          esac
+          # NYSE full-day holidays
+          holidays="2026-11-26 2026-12-25 2027-01-01 2027-01-18 2027-02-15 2027-03-26 2027-05-31 2027-06-18 2027-07-05 2027-09-06 2027-11-25 2027-12-24"
+          if [ "$offset" != "$want" ]; then
+            echo "Skipping: this time slot is for UTC$want, New York is UTC$offset today."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          elif echo " $holidays " | grep -q " $today "; then
+            echo "Skipping: $today is a market holiday."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Market-hours scan for $today."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
   scan:
-    if: github.event_name != 'push'
+    needs: gate
+    # Manual runs ("Run workflow") always scan; scheduled runs only when the gate allows.
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.gate.outputs.run == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -50,8 +88,8 @@ jobs:
   deploy:
     needs: scan
     # Runs after a successful scan, or on its own when you push a page edit.
-    # If a scan fails, this is skipped and the previous results stay online.
-    if: always() && (needs.scan.result == 'success' || needs.scan.result == 'skipped')
+    # If a scan fails or is skipped, the previous results stay online.
+    if: always() && (needs.scan.result == 'success' || github.event_name == 'push')
     runs-on: ubuntu-latest
     environment:
       name: github-pages
