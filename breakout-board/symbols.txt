@@ -1,0 +1,13 @@
+# One ticker per line or separated by spaces. Lines starting with # are ignored.
+# Free Twelve Data plan: 8 calls/minute, 800/day. Each scan uses one call per ticker,
+# so 100 tickers x 6 scans a day = 600 calls. Stay under ~130 tickers on the free plan.
+AAPL MSFT NVDA GOOGL AMZN META AVGO TSLA BRK.B LLY
+JPM V WMT ORCL MA XOM UNH COST NFLX JNJ
+PG HD ABBV BAC KO PLTR CRM AMD CVX TMUS
+CSCO WFC MRK PM IBM GE ABT LIN ACN MCD
+ISRG PEP NOW INTU DIS AXP T MS GS UBER
+TMO CAT VZ RTX BKNG QCOM TXN ADBE AMGN SPGI
+BLK PGR SCHW C NEE BSX PFE HON SYK UNP
+LOW AMAT DHR ETN COF TJX GILD BA PANW ANET
+MU DE KKR ADP LRCX CMCSA KLAC APH MDT ADI
+VRTX CRWD SBUX LMT MMC ICE CB PLD BMY CEG

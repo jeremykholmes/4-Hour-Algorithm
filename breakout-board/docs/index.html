@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Breakout Board</title>
+<meta name="description" content="Momentum-breakout scan on 4-hour candles across 100 of the largest US stocks, refreshed every 4 hours.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232c49c7'/%3E%3Cpath d='M6 22l6-6 4 4 9-10' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: status strip, tier summary, top-pick cards, full ranked table, method notes. Ink-blue on cool paper; semantic green/amber/red for signals only. */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --surface-2:#eef1f6; --line:#d9dee7; --ink:#18202e; --muted:#5b6577;
+  --accent:#2c49c7; --accent-ink:#ffffff; --accent-soft:#e3e8fb;
+  --up:#1a7f4b; --up-soft:#dcf1e5; --warn:#a86108; --warn-soft:#fbecd5; --down:#b42f2f; --down-soft:#f8dfdf;
+  --grid:#e4e8ef; --ema20:#c9871a; --ema50:#7a4fd0;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1420; --surface:#161d2c; --surface-2:#1c2436; --line:#2a3449; --ink:#e6eaf2; --muted:#98a2b6;
+  --accent:#7d95ff; --accent-ink:#0f1420; --accent-soft:#232f55;
+  --up:#4fcb8a; --up-soft:#173527; --warn:#f0b04f; --warn-soft:#3a2d16; --down:#f27b7b; --down-soft:#3d1d22;
+  --grid:#232c3f; --ema20:#e2a646; --ema50:#a98bff; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+[hidden]{display:none!important}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(1.7rem,4vw,2.3rem);font-weight:800}
+h2{font-size:1.15rem;font-weight:700}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+button,input{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--accent)}
+.btn:disabled{opacity:.55;cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+header.top p{margin:4px 0 0;color:var(--muted);max-width:60ch}
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--up);margin-right:6px;vertical-align:middle;box-shadow:0 0 0 3px var(--up-soft)}
+.live-dot.stale{background:var(--warn);box-shadow:0 0 0 3px var(--warn-soft)}
+
+.control{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:14px 28px;align-items:center}
+.control .group{display:flex;flex-direction:column;gap:2px;min-width:0}
+.control .spacer{flex:1}
+.notice{border-radius:10px;padding:10px 14px;font-size:.92rem;border:1px solid var(--line);background:var(--surface-2)}
+.notice.warn{background:var(--warn-soft);border-color:transparent}
+.notice.err{background:var(--down-soft);border-color:transparent}
+
+.tiers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.tier{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;text-align:left}
+.tier[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.tier .count{font-family:var(--f-display);font-size:1.9rem;font-weight:800;line-height:1.1}
+.tier .stripe{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
+
+.picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.pick{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;cursor:pointer;text-align:left}
+.pick:hover{border-color:var(--accent)}
+.pick .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.pick .sym{font-family:var(--f-display);font-weight:800;font-size:1.35rem}
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:.82rem}
+.levels div{background:var(--surface-2);border-radius:6px;padding:4px 6px}
+.pick svg{width:100%;height:64px;display:block}
+
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:.76rem;font-weight:600;white-space:nowrap}
+.pill.breakout{background:var(--up-soft);color:var(--up)}
+.pill.setup{background:var(--accent-soft);color:var(--accent)}
+.pill.watch{background:var(--warn-soft);color:var(--warn)}
+.pill.none{background:var(--surface-2);color:var(--muted)}
+.pill.error{background:var(--down-soft);color:var(--down)}
+
+.tablebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.tablebar input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 10px;width:200px;max-width:100%}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:.9rem}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;background:var(--surface)}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+th[aria-sort] span::after{content:" ▾"}
+th[aria-sort="ascending"] span::after{content:" ▴"}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:0}
+td.sym{font-weight:700;font-family:var(--f-display);font-size:1rem}
+.bar{display:inline-flex;align-items:center;gap:8px;justify-content:flex-end}
+.bar i{display:block;width:70px;height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.bar i b{display:block;height:100%;background:var(--accent)}
+.up{color:var(--up)} .down{color:var(--down)}
+
+.detail{position:fixed;inset:0;background:color-mix(in srgb,var(--ink) 35%,transparent);display:flex;justify-content:flex-end;z-index:20}
+.detail .panel{background:var(--surface);width:min(560px,100%);height:100%;overflow-y:auto;padding:calc(20px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) 18px;display:flex;flex-direction:column;gap:16px;border-left:1px solid var(--line)}
+.detail .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.detail svg{width:100%;height:auto;display:block}
+.checks{display:flex;flex-direction:column;gap:6px;padding:0;margin:0;list-style:none}
+.checks li{display:flex;justify-content:space-between;gap:12px;padding:8px 10px;background:var(--surface-2);border-radius:8px;font-size:.9rem}
+.checks .pts{font-family:var(--f-mono)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:14px;height:3px;margin-right:5px;vertical-align:middle;background:var(--c)}
+
+.method{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;font-size:.9rem}
+.method p{margin:4px 0 0;color:var(--muted);max-width:65ch}
+footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:640px){.tiers{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Breakout Board</h1>
+      <p>Momentum-breakout scan on 4-hour candles across 100 of the largest US stocks. Ranked by a 0–100 setup score and refreshed automatically every 4 hours.</p>
+    </div>
+    <div class="label" id="asof"></div>
+  </header>
+
+  <section class="control" aria-label="Scan status">
+    <div class="group">
+      <span class="label">Last scan</span>
+      <span id="last-scan"><span class="live-dot" id="dot"></span><span class="num" id="last-scan-time">Loading…</span></span>
+    </div>
+    <div class="group">
+      <span class="label">Next scheduled scan</span>
+      <span class="num" id="next-scan">—</span>
+    </div>
+    <div class="group">
+      <span class="label">Stocks scored</span>
+      <span class="num" id="coverage">—</span>
+    </div>
+    <div class="spacer"></div>
+    <button type="button" class="btn" id="refresh">Check for new results</button>
+  </section>
+
+  <div class="notice" id="notice" hidden></div>
+
+  <section class="tiers" id="tiers" aria-label="Signal counts"></section>
+
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <h2>Best buying opportunities</h2>
+    <div class="picks" id="picks"></div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <div class="tablebar">
+      <h2>All stocks</h2>
+      <input type="search" id="search" placeholder="Filter by ticker" aria-label="Filter by ticker">
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-label="How the score works">
+    <h2 style="margin-bottom:10px">How the score works</h2>
+    <div class="method">
+      <div><strong>Breakout · 30 pts</strong><p>Close above the highest high of the prior 20 four-hour bars (about two weeks). Within 2% below it earns partial credit.</p></div>
+      <div><strong>Trend · 20 pts</strong><p>Price above the 50-bar EMA, 20-bar EMA above the 50, and the 50-bar EMA rising over the last 10 bars.</p></div>
+      <div><strong>Momentum · 30 pts</strong><p>RSI(14) between 55 and 72 scores full marks. MACD histogram above zero and rising adds the rest.</p></div>
+      <div><strong>Volume · 20 pts</strong><p>Last bar's volume versus its 20-bar average. 2× or more scores full marks. Over-extended moves (more than 3 ATR above the 20 EMA) lose 10.</p></div>
+      <div><strong>Levels</strong><p>Entry is the last close. Stop is 2 ATR below. Target is 4 ATR above, a 2:1 reward-to-risk.</p></div>
+      <div><strong>Tiers</strong><p>Breakout: confirmed breakout and score 70+. Setting up: 55+. Watch: 40+. A scan during market hours includes the bar still forming, so its volume reads low until it closes.</p></div>
+    </div>
+  </section>
+
+  <footer>For research and education only. Not investment advice. Signals are mechanical and ignore news, earnings dates and fundamentals. Market data from Twelve Data.</footer>
+</div>
+
+<div class="detail" id="detail" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="d-title" id="detail-panel"></div>
+</div>
+
+<script>
+(() => {
+const DATA_URL = "data/latest.json";
+// Must match the cron lines in .github/workflows/scan.yml (UTC).
+// Mon–Fri at :17 past 00,04,08,12,16,20 UTC, plus Saturday 00:17 UTC.
+const SCHEDULE = { minute: 17, hours: [0,4,8,12,16,20], weekdays: [1,2,3,4,5], extra: [[6,0]] };
+const SCAN_MINUTES = 15; // a free-plan scan takes ~13 min after it starts
+const TIERS = [["breakout","Breakouts","--up"],["setup","Setting up","--accent"],["watch","Watch","--warn"],["none","No signal","--muted"]];
+const TIER_LABEL = {breakout:"Breakout",setup:"Setting up",watch:"Watch",none:"No signal",error:"No data"};
+
+const state = { data:null, results:[], filter:null, query:"", sort:{key:"score",dir:-1}, loadedAt:null };
+const $ = id => document.getElementById(id);
+
+function fmt(x){ if(x==null||!isFinite(x)) return "—"; return x>=1000? x.toLocaleString(undefined,{maximumFractionDigits:0}) : x.toFixed(2); }
+function pct(x){ return (x>0?"+":"")+x.toFixed(2)+"%"; }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function timeStr(t){ return t? new Date(t).toLocaleString(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) : "—"; }
+function ago(t){ const m=Math.round((Date.now()-t)/6e4); if(m<1) return "just now"; if(m<60) return m+" min ago"; const h=Math.floor(m/60); if(h<48) return h+"h "+String(m%60).padStart(2,"0")+"m ago"; return Math.floor(h/24)+" days ago"; }
+
+function nextRun(from){
+  const d = new Date(from); d.setUTCSeconds(0,0);
+  for(let i=0;i<8*24*60;i+=60){
+    const t = new Date(d.getTime()); t.setUTCMinutes(SCHEDULE.minute); t.setTime(t.getTime()+i*6e4);
+    if(t<=from) continue;
+    const wd=t.getUTCDay(), h=t.getUTCHours();
+    if((SCHEDULE.weekdays.includes(wd) && SCHEDULE.hours.includes(h)) || SCHEDULE.extra.some(([w,hh])=>w===wd&&hh===h)) return t;
+  }
+  return null;
+}
+
+function showNotice(kind,msg){ const n=$("notice"); if(!msg){ n.hidden=true; return; } n.hidden=false; n.className="notice"+(kind?" "+kind:""); n.textContent=msg; }
+
+async function load(manual){
+  const btn=$("refresh"); btn.disabled=true; btn.textContent="Checking…";
+  try{
+    const res = await fetch(DATA_URL+"?t="+Date.now(), {cache:"no-store"});
+    if(!res.ok) throw new Error(res.status===404? "missing" : "HTTP "+res.status);
+    const data = await res.json();
+    const changed = !state.data || state.data.generatedAt !== data.generatedAt;
+    state.data = data; state.loadedAt = Date.now();
+    if(changed){
+      state.results = data.results.map(r => r.tier==="error"? r : {...r, bars: r.bars.map(([t,o,h,l,c,v])=>({t,o,h,l,c,v}))});
+      render();
+    }
+    status();
+    if(manual && !changed) showNotice("", "No newer scan yet. "+nextText());
+  }catch(e){
+    if(!state.data){
+      showNotice(e.message==="missing"?"warn":"err", e.message==="missing"
+        ? "The first scan hasn't finished yet. Results appear here about 15 minutes after the scan starts."
+        : "Couldn't load the latest results ("+e.message+"). Try again in a minute.");
+      $("last-scan-time").textContent = "—";
+      render();
+    }
+  }finally{ btn.disabled=false; btn.textContent="Check for new results"; }
+}
+
+function nextText(){
+  const n = nextRun(new Date());
+  return n? `Next scan starts ${timeStr(n)}, results about ${SCAN_MINUTES} minutes later.` : "";
+}
+
+function status(){
+  const d = state.data;
+  const n = nextRun(new Date());
+  $("next-scan").textContent = n? timeStr(n) : "—";
+  if(!d) return;
+  const t = new Date(d.generatedAt).getTime();
+  $("last-scan-time").textContent = `${timeStr(t)} · ${ago(t)}`;
+  $("coverage").textContent = `${d.ok} of ${d.requested}`;
+  // Stale = more than one scheduled slot overdue (allow for GitHub delays).
+  const due = nextRun(new Date(t));
+  const stale = d.source!=="sample" && due && Date.now() > due.getTime() + 75*6e4;
+  $("dot").classList.toggle("stale", !!stale || d.source==="sample");
+  if(d.source==="sample") showNotice("warn","Sample data: invented prices that show how the board works. Real results replace these after the first scheduled scan.");
+  else if(stale) showNotice("warn", `The latest scan is from ${ago(t)}. A scheduled scan may have failed. Check the Actions tab in the GitHub repository.`);
+  else if(d.failed) showNotice("", `${d.failed} stock${d.failed>1?"s":""} returned no data in the last scan.`);
+  else showNotice();
+}
+
+function ranked(){ return state.results.filter(r=>r.tier!=="error").sort((a,b)=>b.score-a.score); }
+
+function render(){
+  const ok = ranked();
+  const counts = Object.fromEntries(TIERS.map(t=>[t[0],0])); ok.forEach(r=>counts[r.tier]++);
+  $("tiers").innerHTML = TIERS.map(([k,label,c])=>`<button type="button" class="tier" data-tier="${k}" aria-pressed="${state.filter===k}">
+      <div class="label"><span class="stripe" style="background:var(${c})"></span>${label}</div>
+      <div class="count num">${state.data? counts[k] : "—"}</div></button>`).join("");
+  const last = ok.find(r=>r.lastTime);
+  $("asof").textContent = state.data && state.data.source==="sample" ? "Sample data · not real prices" : (last? `Latest 4H bar: ${last.lastTime.slice(0,16)} ET` : "");
+  $("asof").style.color = state.data && state.data.source==="sample" ? "var(--warn)" : "";
+
+  const picks = ok.filter(r=>r.tier==="breakout"||r.tier==="setup").slice(0,6);
+  $("picks").innerHTML = !state.data ? `<div class="notice" style="grid-column:1/-1">Waiting for results…</div>`
+    : picks.length? picks.map(pickCard).join("")
+    : `<div class="notice" style="grid-column:1/-1">No stock scores 55 or higher right now. That is normal in a weak or choppy market. The best of the rest are in the table below.</div>`;
+
+  const q = state.query.trim().toUpperCase();
+  let rows = state.results.filter(r=> (!state.filter || r.tier===state.filter) && (!q || r.sym.includes(q)));
+  const {key,dir} = state.sort;
+  rows.sort((a,b)=>{ const x=a[key], y=b[key]; if(typeof x==="string") return dir*x.localeCompare(y); return dir*((x??-1e9)-(y??-1e9)); });
+  const cols=[["rank","#"],["sym","Stock"],["price","Price"],["chg","4H chg"],["score","Score"],["tier","Signal"],["rsi","RSI"],["rvol","Rel. vol"],["dist","vs 20-bar high"]];
+  $("thead").innerHTML = cols.map(([k,l])=>`<th data-key="${k}" ${state.sort.key===k?`aria-sort="${dir>0?"ascending":"descending"}"`:""}><span>${l}</span></th>`).join("");
+  const rankMap = new Map(ok.map((r,i)=>[r.sym,i+1]));
+  $("tbody").innerHTML = rows.length? rows.map(r=> r.tier==="error"
+    ? `<tr data-sym="${esc(r.sym)}"><td class="num muted">—</td><td class="sym">${esc(r.sym)}</td><td colspan="7" style="text-align:left"><span class="pill error">No data</span> <span class="muted">${esc(r.err||"")}</span></td></tr>`
+    : `<tr data-sym="${esc(r.sym)}"><td class="num muted">${rankMap.get(r.sym)}</td><td class="sym">${esc(r.sym)}</td>
+      <td class="num">${fmt(r.price)}</td><td class="num ${r.chg>=0?"up":"down"}">${pct(r.chg)}</td>
+      <td><span class="bar"><span class="num">${r.score}</span><i><b style="width:${r.score}%"></b></i></span></td>
+      <td><span class="pill ${r.tier}">${TIER_LABEL[r.tier]}</span></td>
+      <td class="num">${r.rsi.toFixed(0)}</td><td class="num">${r.rvol.toFixed(2)}×</td>
+      <td class="num ${r.dist>=0?"up":""}">${pct(r.dist)}</td></tr>`).join("")
+    : `<tr><td colspan="9" style="text-align:center" class="muted">${state.data?"No stocks match.":"Waiting for results…"}</td></tr>`;
+}
+
+function spark(r, w=260, h=64){
+  const b=r.bars.slice(-60), c=b.map(x=>x.c), lo=Math.min(...c, r.hh20)*0.998, hi=Math.max(...c, r.hh20)*1.002;
+  const X=i=>2+i*(w-8)/(b.length-1), Y=v=>h-4-(v-lo)/(hi-lo)*(h-8);
+  const d=c.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1)).join(" ");
+  const col = r.tier==="breakout"?"var(--up)":"var(--accent)";
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+    <path d="${d} L${X(b.length-1)} ${h} L${X(0)} ${h} Z" fill="${col}" opacity=".10"/>
+    <line x1="0" x2="${w}" y1="${Y(r.hh20)}" y2="${Y(r.hh20)}" stroke="var(--muted)" stroke-dasharray="3 3" stroke-width="1"/>
+    <path d="${d}" fill="none" stroke="${col}" stroke-width="1.8" vector-effect="non-scaling-stroke"/>
+    <circle cx="${X(b.length-1)}" cy="${Y(c[c.length-1])}" r="3" fill="${col}"/></svg>`;
+}
+function pickCard(r){
+  return `<button type="button" class="pick" data-sym="${esc(r.sym)}">
+    <div class="row"><span class="sym">${esc(r.sym)}</span><span class="pill ${r.tier}">${TIER_LABEL[r.tier]}</span></div>
+    <div class="row"><span class="num" style="font-size:1.1rem">${fmt(r.price)} <span class="${r.chg>=0?"up":"down"}" style="font-size:.85rem">${pct(r.chg)}</span></span><span class="label">Score <span class="num" style="font-size:1rem;color:var(--ink)">${r.score}</span></span></div>
+    ${spark(r)}
+    <div class="levels num"><div><span class="label">Entry</span><br>${fmt(r.entry)}</div><div><span class="label">Stop</span><br>${fmt(r.stop)}</div><div><span class="label">Target</span><br>${fmt(r.target)}</div></div>
+  </button>`;
+}
+
+function bigChart(r){
+  const b=r.bars, w=520, h=260, pl=4, pr=52, pt=8, pb=20;
+  const e20=r.e20, e50=r.e50;
+  const vals=b.flatMap(x=>[x.h,x.l]).concat([r.hh20]); const lo=Math.min(...vals), hi=Math.max(...vals);
+  const X=i=>pl+(i+.5)*(w-pl-pr)/b.length, Y=v=>pt+(hi-v)/(hi-lo)*(h-pt-pb), bw=Math.max(1.5,(w-pl-pr)/b.length*0.6);
+  const ticks=[0,1,2,3,4].map(k=>lo+(hi-lo)*k/4);
+  let s=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(r.sym)} 4-hour candles">`;
+  ticks.forEach(t=>{ s+=`<line x1="${pl}" x2="${w-pr}" y1="${Y(t)}" y2="${Y(t)}" stroke="var(--grid)"/><text x="${w-pr+6}" y="${Y(t)+4}" font-size="10" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${fmt(t)}</text>`; });
+  b.forEach((x,i)=>{ const up=x.c>=x.o, col=up?"var(--up)":"var(--down)";
+    s+=`<line x1="${X(i)}" x2="${X(i)}" y1="${Y(x.h)}" y2="${Y(x.l)}" stroke="${col}"/><rect x="${X(i)-bw/2}" y="${Y(Math.max(x.o,x.c))}" width="${bw}" height="${Math.max(1,Math.abs(Y(x.o)-Y(x.c)))}" fill="${col}"/>`; });
+  const line=(arr,col)=>arr&&arr.length===b.length? `<path d="${arr.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1)).join(" ")}" fill="none" stroke="${col}" stroke-width="1.5"/>` : "";
+  s+=line(e20,"var(--ema20)")+line(e50,"var(--ema50)");
+  s+=`<line x1="${pl}" x2="${w-pr}" y1="${Y(r.hh20)}" y2="${Y(r.hh20)}" stroke="var(--ink)" stroke-dasharray="4 3" opacity=".6"/>`;
+  s+=`<text x="${pl+4}" y="${h-5}" font-size="10" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${esc(b[0].t.slice(0,10))}</text><text x="${w-pr}" y="${h-5}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${esc(b[b.length-1].t.slice(0,10))}</text></svg>`;
+  return s;
+}
+
+let lastFocus=null;
+function openDetail(sym){
+  const r = state.results.find(x=>x.sym===sym); if(!r || r.tier==="error") return;
+  lastFocus = document.activeElement;
+  const rr = (r.target-r.entry)/(r.entry-r.stop);
+  $("detail-panel").innerHTML = `
+    <div class="head"><div><div class="label">${state.data.source==="sample"?"Sample data":"Twelve Data · 4-hour candles"}</div>
+      <h2 id="d-title" style="font-size:1.8rem">${esc(r.sym)} <span class="pill ${r.tier}" style="vertical-align:middle">${TIER_LABEL[r.tier]}</span></h2>
+      <div class="num" style="font-size:1.1rem">${fmt(r.price)} <span class="${r.chg>=0?"up":"down"}">${pct(r.chg)}</span> · score ${r.score}/100</div></div>
+      <button type="button" class="btn" id="close-detail">Close</button></div>
+    ${bigChart(r)}
+    <div class="legend"><span style="--c:var(--ema20)">EMA 20</span><span style="--c:var(--ema50)">EMA 50</span><span style="--c:var(--ink)">20-bar high ${fmt(r.hh20)}</span></div>
+    <div class="num" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:.9rem">
+      ${[["Entry",r.entry],["Stop",r.stop],["Target",r.target]].map(([k,v])=>`<div style="background:var(--surface-2);border-radius:8px;padding:8px"><div class="label">${k}</div>${fmt(v)}</div>`).join("")}
+      <div style="background:var(--surface-2);border-radius:8px;padding:8px"><div class="label">Reward:risk</div>${rr.toFixed(1)} : 1</div></div>
+    <div><div class="label" style="margin-bottom:6px">Score breakdown</div>
+    <ul class="checks">${r.parts.map(([n,p,m,d])=>`<li><span><strong>${esc(n)}</strong><br><span class="muted">${esc(d)}</span></span><span class="pts ${p<0?"down":p>0?"up":"muted"}">${p>0?"+":""}${p}${m?" / "+m:""}</span></li>`).join("")}</ul></div>
+    <p class="muted" style="font-size:.82rem;margin:0">ATR(14) ${fmt(r.atr)} · RSI ${r.rsi.toFixed(1)} · Relative volume ${r.rvol.toFixed(2)}×. Levels are mechanical, not advice.</p>`;
+  $("detail").hidden=false; $("close-detail").focus();
+}
+function closeDetail(){ if($("detail").hidden) return; $("detail").hidden=true; if(lastFocus) lastFocus.focus(); }
+
+document.addEventListener("click", e=>{
+  const t=e.target;
+  if(t.id==="close-detail" || t.id==="detail"){ closeDetail(); return; }
+  const tier=t.closest(".tier"); if(tier){ state.filter = state.filter===tier.dataset.tier? null : tier.dataset.tier; render(); return; }
+  const th=t.closest("th[data-key]"); if(th){ let k=th.dataset.key; if(k==="rank") k="score"; state.sort = {key:k, dir: state.sort.key===k? -state.sort.dir : (k==="sym"||k==="tier"?1:-1)}; render(); return; }
+  const row=t.closest("[data-sym]"); if(row && !t.closest("#detail")){ openDetail(row.dataset.sym); return; }
+});
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeDetail(); });
+$("search").oninput = e=>{ state.query=e.target.value; render(); };
+$("refresh").onclick = ()=>load(true);
+
+render(); status(); load(false);
+// Keep an open tab current: re-check every 5 minutes and when the tab regains focus.
+setInterval(()=>{ load(false); }, 5*6e4);
+setInterval(status, 30000);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && Date.now()-(state.loadedAt||0) > 6e4) load(false); });
+})();
+</script>
+</body>
+</html>
