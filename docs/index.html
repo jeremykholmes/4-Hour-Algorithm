@@ -59,6 +59,10 @@ header.top p{margin:4px 0 0;color:var(--muted);max-width:60ch}
 .tier{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;text-align:left}
 .tier[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .tier .count{font-family:var(--f-display);font-size:1.9rem;font-weight:800;line-height:1.1}
+.tier{display:flex;flex-direction:column;gap:4px}
+.tier .desc{margin:0;font-size:.82rem;line-height:1.4;color:var(--muted);font-weight:400}
+.tier-note{margin:0;padding:10px 12px;border-radius:8px;font-size:.9rem;line-height:1.45;background:var(--surface-2)}
+.tier-note.breakout{background:var(--up-soft)} .tier-note.setup{background:var(--accent-soft)} .tier-note.watch{background:var(--warn-soft)}
 .tier .stripe{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
 
 .picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
@@ -97,11 +101,12 @@ td.sym{font-weight:700;font-family:var(--f-display);font-size:1rem}
 
 .detail{position:fixed;inset:0;background:color-mix(in srgb,var(--ink) 35%,transparent);display:flex;justify-content:flex-end;z-index:20}
 .detail .panel{background:var(--surface);width:min(560px,100%);height:100%;overflow-y:auto;padding:calc(20px + env(safe-area-inset-top,0px)) max(18px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) 18px;display:flex;flex-direction:column;gap:16px;border-left:1px solid var(--line)}
+.detail .panel > *{flex-shrink:0}
 .detail .head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .detail svg{width:100%;height:auto;display:block}
 .checks{display:flex;flex-direction:column;gap:6px;padding:0;margin:0;list-style:none}
 .checks li{display:flex;justify-content:space-between;gap:12px;padding:8px 10px;background:var(--surface-2);border-radius:8px;font-size:.9rem}
-.checks .pts{font-family:var(--f-mono)}
+.checks .pts{font-family:var(--f-mono);white-space:nowrap}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted)}
 .legend span::before{content:"";display:inline-block;width:14px;height:3px;margin-right:5px;vertical-align:middle;background:var(--c)}
 
@@ -190,6 +195,21 @@ const HOLIDAYS = ["2026-11-26","2026-12-25","2027-01-01","2027-01-18","2027-02-1
 const SCAN_MINUTES = 15; // a free-plan scan takes ~13 min after it starts
 const TIERS = [["breakout","Breakouts","--up"],["setup","Setting up","--accent"],["watch","Watch","--warn"],["none","No signal","--muted"]];
 const TIER_LABEL = {breakout:"Breakout",setup:"Setting up",watch:"Watch",none:"No signal",error:"No data"};
+// Short version for the summary cards and hover text.
+const TIER_DESC = {
+  breakout:"Just closed above its two-week high, with trend, momentum and volume behind it. The move is underway.",
+  setup:"Strong and at or near its two-week high, but not a confirmed breakout yet. A candidate to break out next.",
+  watch:"Some strength, but key pieces are missing, such as the trend or volume. Early or mixed.",
+  none:"Few conditions met. Moving sideways or down, or losing momentum.",
+  error:"Twelve Data returned no prices for this ticker in the last scan."
+};
+// Longer version for a stock's detail panel.
+const TIER_NOTE = {
+  breakout:"<strong>Breakout:</strong> the last 4-hour candle closed above the highest price of the previous 20 candles (about two weeks), and the score of 70+ means trend, momentum and volume agree. A breakout on low relative volume (under 1×) is less convincing, because fewer traders are behind the move.",
+  setup:"<strong>Setting up:</strong> a score of 55 or more without a confirmed breakout. Usually the stock is in an uptrend and sitting just under its two-week high (the dashed line), or it has edged above it without enough strength behind the move. What to watch for is a strong close above the dashed line.",
+  watch:"<strong>Watch:</strong> a score of 40–54. Some conditions are met, but important ones are missing. Check the breakdown below to see which. It isn't a setup yet, but could become one.",
+  none:"<strong>No signal:</strong> a score under 40. Few of the conditions are met, so there's no momentum breakout here right now."
+};
 
 const state = { data:null, results:[], filter:null, query:"", sort:{key:"score",dir:-1}, loadedAt:null };
 const $ = id => document.getElementById(id);
@@ -273,7 +293,8 @@ function render(){
   const counts = Object.fromEntries(TIERS.map(t=>[t[0],0])); ok.forEach(r=>counts[r.tier]++);
   $("tiers").innerHTML = TIERS.map(([k,label,c])=>`<button type="button" class="tier" data-tier="${k}" aria-pressed="${state.filter===k}">
       <div class="label"><span class="stripe" style="background:var(${c})"></span>${label}</div>
-      <div class="count num">${state.data? counts[k] : "—"}</div></button>`).join("");
+      <div class="count num">${state.data? counts[k] : "—"}</div>
+      <p class="desc">${TIER_DESC[k]}</p></button>`).join("");
   const last = ok.find(r=>r.lastTime);
   $("asof").textContent = state.data && state.data.source==="sample" ? "Sample data · not real prices" : (last? `Latest 4H bar: ${last.lastTime.slice(0,16)} ET` : "");
   $("asof").style.color = state.data && state.data.source==="sample" ? "var(--warn)" : "";
@@ -295,7 +316,7 @@ function render(){
     : `<tr data-sym="${esc(r.sym)}"><td class="num muted">${rankMap.get(r.sym)}</td><td class="sym">${esc(r.sym)}</td>
       <td class="num">${fmt(r.price)}</td><td class="num ${r.chg>=0?"up":"down"}">${pct(r.chg)}</td>
       <td><span class="bar"><span class="num">${r.score}</span><i><b style="width:${r.score}%"></b></i></span></td>
-      <td><span class="pill ${r.tier}">${TIER_LABEL[r.tier]}</span></td>
+      <td><span class="pill ${r.tier}" title="${TIER_DESC[r.tier]}">${TIER_LABEL[r.tier]}</span></td>
       <td class="num">${r.rsi.toFixed(0)}</td><td class="num">${r.rvol.toFixed(2)}×</td>
       <td class="num ${r.dist>=0?"up":""}">${pct(r.dist)}</td></tr>`).join("")
     : `<tr><td colspan="9" style="text-align:center" class="muted">${state.data?"No stocks match.":"Waiting for results…"}</td></tr>`;
@@ -314,7 +335,7 @@ function spark(r, w=260, h=64){
 }
 function pickCard(r){
   return `<button type="button" class="pick" data-sym="${esc(r.sym)}">
-    <div class="row"><span class="sym">${esc(r.sym)}</span><span class="pill ${r.tier}">${TIER_LABEL[r.tier]}</span></div>
+    <div class="row"><span class="sym">${esc(r.sym)}</span><span class="pill ${r.tier}" title="${TIER_DESC[r.tier]}">${TIER_LABEL[r.tier]}</span></div>
     <div class="row"><span class="num" style="font-size:1.1rem">${fmt(r.price)} <span class="${r.chg>=0?"up":"down"}" style="font-size:.85rem">${pct(r.chg)}</span></span><span class="label">Score <span class="num" style="font-size:1rem;color:var(--ink)">${r.score}</span></span></div>
     ${spark(r)}
     <div class="levels num"><div><span class="label">Entry</span><br>${fmt(r.entry)}</div><div><span class="label">Stop</span><br>${fmt(r.stop)}</div><div><span class="label">Target</span><br>${fmt(r.target)}</div></div>
@@ -348,6 +369,7 @@ function openDetail(sym){
       <h2 id="d-title" style="font-size:1.8rem">${esc(r.sym)} <span class="pill ${r.tier}" style="vertical-align:middle">${TIER_LABEL[r.tier]}</span></h2>
       <div class="num" style="font-size:1.1rem">${fmt(r.price)} <span class="${r.chg>=0?"up":"down"}">${pct(r.chg)}</span> · score ${r.score}/100</div></div>
       <button type="button" class="btn" id="close-detail">Close</button></div>
+    <p class="tier-note ${r.tier}">${TIER_NOTE[r.tier]}</p>
     ${bigChart(r)}
     <div class="legend"><span style="--c:var(--ema20)">EMA 20</span><span style="--c:var(--ema50)">EMA 50</span><span style="--c:var(--ink)">20-bar high ${fmt(r.hh20)}</span></div>
     <div class="num" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:.9rem">
