@@ -64,6 +64,10 @@ th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;whit
 th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;background:var(--surface)}
 th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
 th[aria-sort] span::after{content:" ▾"}
+tr.group th{cursor:default;padding:8px 10px 0;border-bottom:0}
+tr.group th.perf-head{text-align:left;color:var(--ink);font-size:.78rem;letter-spacing:.1em}
+tr.group th.perf-head::after{content:"";display:block;height:2px;margin-top:6px;border-radius:2px;background:var(--accent)}
+th.pstart,td.pstart{border-left:1px solid var(--line)}
 th[aria-sort="ascending"] span::after{content:" ▴"}
 tbody tr:hover{background:var(--surface-2)}
 tbody tr:last-child td{border-bottom:0}
@@ -126,7 +130,7 @@ footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padd
     </div>
     <div class="tablewrap">
       <table>
-        <thead><tr id="thead"></tr></thead>
+        <thead><tr class="group"><th colspan="6" aria-hidden="true"></th><th colspan="7" scope="colgroup" class="perf-head">Performance</th></tr><tr id="thead"></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
@@ -196,7 +200,8 @@ function row(e){
   ];
   for (const [k] of HZ){
     const p = e.perf && e.perf[k];
-    tds.push(p ? `<td>${pctCell(p, `Close ${money(p.close)} on ${fmtDate(p.date)}`)}</td>` : `<td class="due">due ${fmtShort(due(e.date,k))}</td>`);
+    const ps = k === "w1" ? " pstart" : "";
+    tds.push(p ? `<td class="${ps.trim()}">${pctCell(p, `Close ${money(p.close)} on ${fmtDate(p.date)}`)}</td>` : `<td class="due${ps}">due ${fmtShort(due(e.date,k))}</td>`);
   }
   return `<tr>${tds.join("")}</tr>`;
 }
@@ -211,7 +216,7 @@ function renderTable(){
     const r = typeof x === "string" ? x.localeCompare(y) : x - y;
     return (asc ? r : -r) || (a.sym < b.sym ? -1 : 1);
   });
-  $("thead").innerHTML = COLS.map(c => `<th scope="col" data-k="${c.key}"${c.key===sortKey?` aria-sort="${asc?"ascending":"descending"}"`:""}><span>${c.label}</span></th>`).join("");
+  $("thead").innerHTML = COLS.map(c => `<th scope="col" data-k="${c.key}"${c.key==="w1"?' class="pstart"':""}${c.key===sortKey?` aria-sort="${asc?"ascending":"descending"}"`:""}><span>${c.label}</span></th>`).join("");
   $("tbody").innerHTML = list.length ? list.map(row).join("") : `<tr><td colspan="${COLS.length}" class="empty">${entries.length ? "No breakouts match that ticker." : "No breakouts recorded yet. They're added automatically after each scan."}</td></tr>`;
 }
 
@@ -259,7 +264,7 @@ function render(){
 }
 
 $("thead").addEventListener("click", ev => {
-  const th = ev.target.closest("th"); if (!th) return;
+  const th = ev.target.closest("th[data-k]"); if (!th) return;
   const k = th.dataset.k;
   if (k === sortKey) asc = !asc; else { sortKey = k; asc = k === "sym"; }
   renderTable();
