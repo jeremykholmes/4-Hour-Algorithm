@@ -53,6 +53,17 @@ To set up Alpaca (free, no deposit):
 
 Only the 3 highest-scoring breakouts keep the Breakout label each scan; any others show as Setting up.
 
+## Email after every scan
+
+The workflow emails the digest (top 3 breakouts and top 5 setting up, each with entry, stop and sell limit) as soon as each scheduled scan saves its results. It sends from your Gmail to itself using a Gmail app password:
+
+1. Your Google account needs 2-Step Verification turned on (myaccount.google.com → Security).
+2. Go to myaccount.google.com/apppasswords, create one named "4 Hour Algorithm", and copy the 16-character password.
+3. In this repository: **Settings → Secrets and variables → Actions → New repository secret**. Add `GMAIL_ADDRESS` (your Gmail address) and `GMAIL_APP_PASSWORD` (the app password).
+4. Optional: add `EMAIL_TO` to send to other addresses instead (comma-separated).
+
+To test, **Actions → Scan and publish → Run workflow**, tick **Email the results**, and run it. Manual runs don't email unless that box is ticked. If the email fails, the site still updates.
+
 ## Schedule
 
 Scans run on weekdays during US market hours, at these New York times:

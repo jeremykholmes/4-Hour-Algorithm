@@ -15,7 +15,12 @@ on:
     - cron: "20 20 * * 1-5"         # EDT: 16:20
     - cron: "50 18 * * 1-5"         # EST: 13:50
     - cron: "20 21 * * 1-5"         # EST: 16:20
-  workflow_dispatch: {}   # adds a "Run workflow" button on the Actions tab
+  workflow_dispatch:      # adds a "Run workflow" button on the Actions tab
+    inputs:
+      send_email:
+        description: "Email the results when the scan finishes"
+        type: boolean
+        default: false
   push:                   # republish the site when you edit the page
     branches: [main]
     paths: ["docs/**"]
@@ -110,6 +115,25 @@ jobs:
           git commit -m "Scan $(date -u +'%Y-%m-%d %H:%M UTC')"
           git pull --rebase --autostash
           git push
+
+      # Emails the digest as soon as the results are saved: after every scheduled scan,
+      # and after a manual run when "Email the results" is ticked. Needs the repository
+      # secrets GMAIL_ADDRESS and GMAIL_APP_PASSWORD (see README). A failed email
+      # doesn't stop the site from updating.
+      - name: Email the results
+        if: github.event_name == 'schedule' || inputs.send_email
+        continue-on-error: true
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: |
+          if [ -z "$GMAIL_APP_PASSWORD" ]; then
+            echo "GMAIL_APP_PASSWORD isn't set, so no email was sent."
+            exit 0
+          fi
+          npm install --no-save --no-audit --no-fund nodemailer@10.0.16
+          node scripts/email.mjs
 
   deploy:
     needs: scan
