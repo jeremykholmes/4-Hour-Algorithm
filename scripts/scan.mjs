@@ -30,7 +30,8 @@ const PACE = Math.max(1, Number(process.env.CALLS_PER_MINUTE) || 8);
 const ALPACA_ID = process.env.ALPACA_API_KEY_ID, ALPACA_SECRET = process.env.ALPACA_API_SECRET_KEY;
 const ALPACA = !SAMPLE && !!(ALPACA_ID && ALPACA_SECRET);
 const TOP_BREAKOUTS = 3;
-const KEEP_QUIET = 40;     // candles kept for stocks with no signal, to keep the JSON small
+const KEEP_QUIET = 40;
+const PINNED_RANGE = 0.004;  // ATR under 0.4% of price = pinned (S&P 500 stocks normally run 0.8% or more)     // candles kept for stocks with no signal, to keep the JSON small
 
 // ---------- indicators (identical to the original dashboard) ----------
 function ema(a, p) { const k = 2 / (p + 1); const out = []; let prev; a.forEach((v, i) => { prev = i === 0 ? v : v * k + prev * (1 - k); out.push(prev); }); return out; }
@@ -71,9 +72,13 @@ function analyze(bars) {
   const pv = rvol >= 2 ? 20 : rvol >= 1.5 ? 15 : rvol >= 1.2 ? 8 : 0;
   parts.push(["Relative volume", pv, 20, `${rvol.toFixed(2)}× 20-bar average`]);
   const ext = (c[n] - e20[n]) / a[n];
+  // A stock whose 4-hour range is a sliver of its price is pinned, usually by a pending
+  // buyout at a fixed price. Its "breakouts" are pennies, so it gets no signal.
+  const pinned = a[n] / c[n] < PINNED_RANGE;
+  if (pinned) parts.push(["Price pinned", 0, 0, `4-hour range only ${(a[n] / c[n] * 100).toFixed(2)}% of price, usually a pending buyout. No signal.`]);
   if (ext > 3) parts.push(["Over-extended", -10, 0, `${ext.toFixed(1)} ATR above EMA20`]);
   const score = Math.max(0, Math.min(100, parts.reduce((s, p) => s + p[1], 0)));
-  const tier = breakout && score >= 70 ? "breakout" : score >= 55 ? "setup" : score >= 40 ? "watch" : "none";
+  const tier = pinned ? "none" : breakout && score >= 70 ? "breakout" : score >= 55 ? "setup" : score >= 40 ? "watch" : "none";
 
   // Round so the JSON stays small.
   const px = x => Math.round(x * 100) / 100;
