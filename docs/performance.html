@@ -59,7 +59,7 @@ header.top p{margin:0;color:var(--muted);max-width:68ch}
 .tablebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .tablebar input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 10px;width:200px;max-width:100%}
 .tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
-table{border-collapse:collapse;width:100%;min-width:860px;font-size:.9rem}
+table{border-collapse:collapse;width:100%;min-width:1040px;font-size:.9rem}
 th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
 th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;background:var(--surface)}
 th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
@@ -74,6 +74,11 @@ td .pc{display:inline-block;min-width:64px;padding:2px 8px;border-radius:6px;fon
 .pc.flat{background:var(--surface-2)}
 .due{font-size:.8rem;color:var(--muted)}
 td .px{display:block;font-size:.76rem;color:var(--muted);font-family:var(--f-mono)}
+td .vs{display:block;font-size:.74rem;font-family:var(--f-mono);margin-top:2px}
+.vs.up{color:var(--up)} .vs.down{color:var(--down)} .vs.flat{color:var(--muted)}
+.hz .bench{font-size:.82rem;line-height:1.4;padding-top:6px;margin-top:4px;border-top:1px solid var(--line)}
+.hz .bench b{font-family:var(--f-mono);font-weight:500}
+.hz .bench .up{color:var(--up)} .hz .bench .down{color:var(--down)}
 .empty{padding:28px;text-align:center;color:var(--muted)}
 
 .method{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;font-size:.9rem}
@@ -88,7 +93,7 @@ footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padd
   <header class="top">
     <a class="crumb" href="./">← 4 Hour Algorithm Breakouts</a>
     <h1>Breakout track record</h1>
-    <p>Every stock the scan has flagged as a breakout, and how it has done since. Returns are measured from the breakout price to the closing price 1 week, 1 month, 2 months, 6 months and 1 year later.</p>
+    <p>Every stock the scan has flagged as a breakout, and how it has done since. Returns are measured from the breakout price to the closing price 1 week, 1 month, 2 months, 6 months and 1 year later, and compared with the S&amp;P 500 (SPY) over the same days.</p>
   </header>
 
   <section class="control" aria-label="Status">
@@ -100,7 +105,7 @@ footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padd
   <div class="notice" id="notice" hidden></div>
 
   <section style="display:flex;flex-direction:column;gap:10px" aria-label="Average return by holding period">
-    <h2>Average return by holding period</h2>
+    <h2>Average return by holding period, versus the S&amp;P 500</h2>
     <div class="horizons" id="horizons"></div>
   </section>
 
@@ -122,8 +127,10 @@ footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padd
     <div class="method">
       <div><strong>Date added</strong><p>The trading day of the scan that first flagged the stock as a breakout. A stock flagged again within 7 days isn't added a second time.</p></div>
       <div><strong>Breakout price</strong><p>The entry price shown on the board when the stock was first flagged. Scans during market hours use the latest price, not the day's close.</p></div>
+      <div><strong>Stop and sell limit</strong><p>The levels recommended when the stock was flagged: a stop 2 ATR below the breakout price and a sell limit 4 ATR above it, a 2:1 reward-to-risk. Place them together as a bracket (OCO) order.</p></div>
       <div><strong>Holding periods</strong><p>Each return uses the daily close on the first trading day on or after the breakout date plus 7 days, or 1, 2, 6 or 12 calendar months. Until then the cell shows when it's due.</p></div>
-      <div><strong>What's left out</strong><p>Returns are price only: no dividends, fees or taxes, and they ignore the stop and target. Prices are adjusted for stock splits. Updated once a day after the close.</p></div>
+      <div><strong>Versus the S&amp;P 500</strong><p>Each return is compared with SPY, the S&amp;P 500 ETF, from its close on the breakout date to its close on the same end date. "vs SPY" is the stock's return minus SPY's, in percentage points. Green means the breakout beat the market.</p></div>
+      <div><strong>What's left out</strong><p>Returns are price only: no dividends, fees or taxes, and they assume you held through the period rather than exiting at the stop or sell limit. Prices are adjusted for stock splits. Updated once a day after the close.</p></div>
     </div>
   </section>
 
@@ -138,6 +145,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const money = x => x == null ? "—" : x >= 1000 ? x.toLocaleString("en-US",{maximumFractionDigits:0}) : x.toFixed(2);
 const sign = x => (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x).toFixed(2) + "%";
+const pts = x => (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x).toFixed(2) + " pts";
 const cls = x => x > 0.005 ? "up" : x < -0.005 ? "down" : "flat";
 const fmtDate = s => { const [y,m,d] = s.split("-").map(Number); return new Date(Date.UTC(y,m-1,d)).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric",timeZone:"UTC"}); };
 const fmtShort = s => { const [y,m,d] = s.split("-").map(Number); return new Date(Date.UTC(y,m-1,d)).toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC", year: y !== new Date().getFullYear() ? "numeric" : undefined}); };
@@ -154,20 +162,26 @@ const COLS = [
   {key:"date", label:"Date added", get:e=>e.date},
   {key:"sym", label:"Symbol", get:e=>e.sym},
   {key:"price", label:"Breakout price", get:e=>e.price},
+  {key:"stop", label:"Stop", get:e=>e.stop},
+  {key:"target", label:"Sell limit", get:e=>e.target},
   {key:"last", label:"Latest", get:e=>e.last ? e.last.pct : null},
   ...HZ.map(([k,l]) => ({key:k, label:l, get:e=>e.perf && e.perf[k] ? e.perf[k].pct : null})),
 ];
 let entries = [], sortKey = "date", asc = false;
 
 function pctCell(p, title){
-  return `<span class="pc ${cls(p.pct)}" title="${esc(title)}">${sign(p.pct)}</span>`;
+  const t = title + (p.spy != null ? ` · SPY ${sign(p.spy)}` : "");
+  const vs = p.vs != null ? `<span class="vs ${cls(p.vs)}">vs SPY ${pts(p.vs)}</span>` : "";
+  return `<span class="pc ${cls(p.pct)}" title="${esc(t)}">${sign(p.pct)}</span>${vs}`;
 }
 function row(e){
   const tds = [
     `<td class="num">${fmtDate(e.date)}</td>`,
     `<td class="sym">${esc(e.sym)}</td>`,
     `<td class="num">${money(e.price)}</td>`,
-    e.last ? `<td>${pctCell(e.last, `Close ${money(e.last.close)} on ${fmtDate(e.last.date)}`)}<span class="px">${money(e.last.close)}</span></td>` : `<td class="due">—</td>`,
+    `<td class="num" title="${e.stop && e.price ? sign((e.stop/e.price-1)*100) + " from breakout" : ""}">${money(e.stop)}</td>`,
+    `<td class="num" title="${e.target && e.price ? sign((e.target/e.price-1)*100) + " from breakout" : ""}">${money(e.target)}</td>`,
+    e.last ? `<td>${pctCell(e.last, `Close ${money(e.last.close)} on ${fmtDate(e.last.date)}`)}<span class="px">at ${money(e.last.close)}</span></td>` : `<td class="due">—</td>`,
   ];
   for (const [k] of HZ){
     const p = e.perf && e.perf[k];
@@ -201,10 +215,14 @@ function renderHorizons(){
     const avg = done.reduce((s,x)=>s+x,0)/done.length;
     const wins = done.filter(x => x > 0).length, wr = Math.round(wins/done.length*100);
     const med = [...done].sort((a,b)=>a-b)[Math.floor((done.length-1)/2)];
+    const vs = entries.filter(e => e.perf && e.perf[k] && e.perf[k].vs != null).map(e => e.perf[k].vs);
+    const avgVs = vs.length ? vs.reduce((s,x)=>s+x,0)/vs.length : null;
+    const beat = vs.filter(x => x > 0).length;
+    const bench = avgVs == null ? "" : `<span class="bench">vs SPY <b class="${cls(avgVs)}">${pts(avgVs)}</b> on average<br>${Math.round(beat/vs.length*100)}% beat SPY</span>`;
     return `<div class="hz"><span class="label">${l}</span>
       <span class="big num ${cls(avg)}" style="color:var(--${avg>0.005?"up":avg<-0.005?"down":"ink"})">${sign(avg)}</span>
       <span class="sub">${wr}% higher · median ${sign(med)}<br>${done.length} complete${pending?` · ${pending} pending`:""}</span>
-      <div class="winbar" title="${wins} of ${done.length} higher"><b style="width:${wr}%"></b></div></div>`;
+      <div class="winbar" title="${wins} of ${done.length} higher"><b style="width:${wr}%"></b></div>${bench}</div>`;
   }).join("");
 }
 

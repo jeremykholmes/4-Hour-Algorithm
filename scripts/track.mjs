@@ -14,6 +14,9 @@
 // - A stock flagged again within 7 calendar days of its last entry is not added twice.
 // - Each horizon uses the daily close on the first trading day on or after
 //   the breakout date + 7 days / 1 / 2 / 6 / 12 months.
+// - Benchmark: each return is compared with SPY (S&P 500 ETF) over the same days,
+//   from SPY's close on the breakout date to its close on the same horizon date.
+//   "vs" = stock return minus SPY return, in percentage points.
 // - Splits: the first fetch stores the daily close on the breakout date; if a later
 //   fetch shows a different (split-adjusted) close for that day, the breakout price
 //   is scaled by the same factor.
@@ -123,6 +126,17 @@ export function score(entry, bars) {
   }
 }
 
+export function benchmark(entry, spy) {
+  if (entry.spyRef == null) { const ref = spy.find(b => b.d === entry.date); if (!ref) return; entry.spyRef = px(ref.c); }
+  const add = p => {
+    if (!p || p.spy != null && p !== entry.last) return;
+    const bar = spy.find(b => b.d === p.date); if (!bar) return;
+    p.spy = pct(bar.c, entry.spyRef); p.vs = Math.round((p.pct - p.spy) * 100) / 100;
+  };
+  add(entry.last);
+  for (const h of HORIZONS) add(entry.perf[h.key]);
+}
+
 async function refreshPrices(db) {
   if (!KEY) { console.log("TWELVE_DATA_API_KEY not set, skipping price refresh."); return; }
   const open = db.entries.filter(e => HORIZONS.some(h => !e.perf[h.key]));   // done once the 1-year mark is in
@@ -132,13 +146,22 @@ async function refreshPrices(db) {
   const gap = 60000 / PACE + 200;
   console.log(`Pricing ${bySym.size} stocks, waiting 60s first so the scan's per-minute limit resets.`);
   await sleep(60000);
+  let spy = null;
+  try {
+    spy = await fetchDaily("SPY", [...bySym.values()].flat().map(e => e.date).sort()[0]);
+    console.log(`  SPY    ${spy.length} days (benchmark)`);
+  } catch (e) {
+    if (e.fatal) { console.error(`Twelve Data rejected the API key: ${e.message}`); process.exit(1); }
+    console.log(`  SPY    error: ${e.message} (returns saved without the SPY comparison)`);
+  }
+  await sleep(60000 / PACE + 200);
   let ok = 0, i = 0;
   for (const [sym, list] of bySym) {
     const t0 = Date.now();
     const start = list.map(e => e.date).sort()[0];
     try {
       const bars = await fetchDaily(sym, start);
-      list.forEach(e => score(e, bars));
+      list.forEach(e => { score(e, bars); if (spy) benchmark(e, spy); });
       ok++;
       console.log(`  ${sym.padEnd(6)} ${bars.length} days`);
     } catch (e) {
