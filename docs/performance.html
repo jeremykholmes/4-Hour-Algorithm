@@ -65,9 +65,16 @@ th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mu
 th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
 th[aria-sort] span::after{content:" ▾"}
 tr.group th{cursor:default;padding:8px 10px 0;border-bottom:0}
-tr.group th.perf-head{text-align:left;color:var(--ink);font-size:.78rem;letter-spacing:.1em}
+tr.group th.perf-head{text-align:left;padding-left:0;color:var(--ink);font-size:.78rem;letter-spacing:.1em}
 tr.group th.perf-head::after{content:"";display:block;height:2px;margin-top:6px;border-radius:2px;background:var(--accent)}
 th.pstart,td.pstart{border-left:1px solid var(--line)}
+/* Frozen columns: everything left of Performance stays put while the returns scroll. */
+.frz{position:sticky;z-index:1;background:var(--surface)}
+thead .frz{z-index:2}
+tbody tr:hover td.frz{background:var(--surface-2)}
+.frz-edge{border-right:1px solid var(--line);box-shadow:6px 0 6px -6px color-mix(in srgb,var(--ink) 30%,transparent)}
+.ph{position:sticky;display:inline-block;padding-left:10px}
+.tablewrap.scrolled .frz-edge{box-shadow:6px 0 8px -4px color-mix(in srgb,var(--ink) 40%,transparent)}
 th[aria-sort="ascending"] span::after{content:" ▴"}
 tbody tr:hover{background:var(--surface-2)}
 tbody tr:last-child td{border-bottom:0}
@@ -130,7 +137,7 @@ footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padd
     </div>
     <div class="tablewrap">
       <table>
-        <thead><tr class="group"><th colspan="6" aria-hidden="true"></th><th colspan="7" scope="colgroup" class="perf-head">Performance</th></tr><tr id="thead"></tr></thead>
+        <thead><tr class="group"><th colspan="6" aria-hidden="true" id="group-left"></th><th colspan="7" scope="colgroup" class="perf-head"><span class="ph" id="perf-label">Performance</span></th></tr><tr id="thead"></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
@@ -270,6 +277,30 @@ $("thead").addEventListener("click", ev => {
   renderTable();
 });
 $("search").addEventListener("input", renderTable);
+
+// Freeze the columns left of Performance (just Date and Symbol when the screen is too narrow).
+function freeze(){
+  const wrap = document.querySelector(".tablewrap");
+  const heads = [...$("thead").children];
+  const rows = [...$("tbody").rows].filter(r => r.cells.length === COLS.length);
+  const all = [heads, ...rows.map(r => [...r.cells])];
+  all.flat().concat($("group-left")).forEach(c => { c.classList.remove("frz","frz-edge"); c.style.left = ""; });
+  let n = 6, total = heads.slice(0, 6).reduce((s, th) => s + th.getBoundingClientRect().width, 0);
+  if (total > wrap.clientWidth * 0.6) n = 2;
+  let left = 0;
+  for (let i = 0; i < n; i++){
+    const w = heads[i].getBoundingClientRect().width;
+    for (const cells of all){ const c = cells[i]; c.classList.add("frz"); c.style.left = left + "px"; if (i === n - 1) c.classList.add("frz-edge"); }
+    left += w;
+  }
+  $("perf-label").style.left = (n === 6 ? left : 0) + "px";
+  const g = $("group-left");
+  if (n === 6){ g.classList.add("frz"); g.style.left = "0px"; }
+}
+const _render = renderTable;
+renderTable = function(){ _render(); freeze(); };
+addEventListener("resize", () => freeze());
+document.querySelector(".tablewrap").addEventListener("scroll", e => e.currentTarget.classList.toggle("scrolled", e.currentTarget.scrollLeft > 0), {passive:true});
 load();
 })();
 </script>
