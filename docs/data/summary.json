@@ -1,5 +1,5 @@
 {
- "generatedAt": "2026-10-22T18:25:01.490Z",
+ "generatedAt": "2026-10-22T18:53:26.080Z",
  "source": "live",
  "universe": "S&P 500",
  "lastCandle": "2026-10-22 09:30:00",
@@ -7,9 +7,9 @@
  "requested": 503,
  "counts": {
   "breakout": 3,
-  "setup": 255,
+  "setup": 253,
   "watch": 54,
-  "none": 190
+  "none": 192
  },
  "breakouts": [
   {
@@ -37,20 +37,6 @@
    "distFromHigh": 2.26
   },
   {
-   "sym": "TECH",
-   "score": 100,
-   "price": 72.67,
-   "chg": 0.03,
-   "entry": 72.67,
-   "stop": 72.47,
-   "target": 73.05,
-   "rsi": 62.8,
-   "rvol": 2.03,
-   "distFromHigh": 0.03
-  }
- ],
- "settingUp": [
-  {
    "sym": "URI",
    "score": 100,
    "price": 1103.49,
@@ -61,7 +47,9 @@
    "rsi": 66.5,
    "rvol": 3.13,
    "distFromHigh": 2.46
-  },
+  }
+ ],
+ "settingUp": [
   {
    "sym": "AMGN",
    "score": 95,
@@ -169,6 +157,18 @@
    "rsi": 76,
    "rvol": 3.33,
    "distFromHigh": 1.48
+  },
+  {
+   "sym": "BX",
+   "score": 90,
+   "price": 116.61,
+   "chg": 6.35,
+   "entry": 116.61,
+   "stop": 110.74,
+   "target": 128.34,
+   "rsi": 62.6,
+   "rvol": 2.56,
+   "distFromHigh": 0.9
   }
  ],
  "failed": [
