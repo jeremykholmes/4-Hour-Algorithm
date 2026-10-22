@@ -2,17 +2,18 @@ name: Scan and publish
 
 on:
   schedule:
-    # US market hours only, weekdays, in New York time:
-    #   11:35 AM, 1:35 PM (first 4-hour candle closes), 3:35 PM,
-    #   and 4:20 PM (after the close; Alpaca's free plan serves full-market data once it's
-    #   15 minutes old, so this is the first scan that includes the day's final candle).
+    # Twice each trading day, right after each 4-hour candle closes (New York time):
+    #   1:50 PM, after the 9:30-1:30 candle, and 4:20 PM, after the 1:30-4:00 candle.
+    # Alpaca's free plan serves full-market data once it's 15 minutes old, so each scan
+    # runs about 20 minutes after its candle closes. The scan ignores candles that
+    # haven't closed yet, so a late start never scores a half-formed candle.
     # GitHub cron runs in UTC, so each time is listed for both daylight time
     # (EDT, UTC-4) and standard time (EST, UTC-5). The "gate" job below
     # skips whichever set doesn't match today's New York offset, and skips
     # NYSE holidays. If you change these, update SLOTS in docs/index.html.
-    - cron: "35 15,17,19 * * 1-5"   # EDT: 11:35, 13:35, 15:35
+    - cron: "50 17 * * 1-5"         # EDT: 13:50
     - cron: "20 20 * * 1-5"         # EDT: 16:20
-    - cron: "35 16,18,20 * * 1-5"   # EST: 11:35, 13:35, 15:35
+    - cron: "50 18 * * 1-5"         # EST: 13:50
     - cron: "20 21 * * 1-5"         # EST: 16:20
   workflow_dispatch: {}   # adds a "Run workflow" button on the Actions tab
   push:                   # republish the site when you edit the page
@@ -42,7 +43,7 @@ jobs:
           offset=$(TZ=America/New_York date +%z)
           today=$(TZ=America/New_York date +%F)
           case "$SCHED" in
-            "35 15,17,19 * * 1-5"|"20 20 * * 1-5") want="-0400" ;;
+            "50 17 * * 1-5"|"20 20 * * 1-5") want="-0400" ;;
             *) want="-0500" ;;
           esac
           # NYSE full-day holidays

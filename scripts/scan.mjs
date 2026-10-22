@@ -183,6 +183,16 @@ async function fetchAllAlpaca(syms) {
   return Object.fromEntries(Object.entries(raw).map(([s, list]) => [s, toFourHour(list)]));
 }
 
+// Drop a candle that hasn't closed yet. 4-hour candles for US stocks run 9:30-13:30 and
+// 13:30-16:00 New York time; `cutoffIso` is the latest moment the data covers.
+export function closedOnly(bars, cutoffIso) {
+  const now = nyParts(cutoffIso);
+  return bars.filter(b => {
+    const date = b.t.slice(0, 10), end = b.t.slice(11, 16) === "09:30" ? 810 : 960;
+    return date < now.date || (date === now.date && now.min >= end);
+  });
+}
+
 // Only the top few breakouts keep the "breakout" label; the rest become "setting up".
 export function capBreakouts(results, n = TOP_BREAKOUTS) {
   const bo = results.filter(r => r.tier === "breakout").sort((a, b) => b.score - a.score);
@@ -258,7 +268,9 @@ async function main() {
   for (let i = 0; i < syms.length; i++) {
     const s = syms[i], t0 = Date.now();
     try {
-      const bars = SAMPLE ? sampleBars(s) : pre ? pre[s] : await fetchBars(s);
+      const raw = SAMPLE ? sampleBars(s) : pre ? pre[s] : await fetchBars(s);
+      // Alpaca's free data is 16+ minutes old; Twelve Data's is current.
+      const bars = SAMPLE || !raw ? raw : closedOnly(raw, new Date(Date.now() - (pre ? 16 : 0) * 60e3).toISOString());
       const a = analyze(bars);
       results.push(a ? { sym: s, ...a } : { sym: s, tier: "error", score: -1, err: "Fewer than 60 candles returned" });
       if (a) console.log(`  ${String(i + 1).padStart(3)} ${s.padEnd(6)} ${String(a.score).padStart(3)}  ${a.tier}`);

@@ -1,12 +1,12 @@
 # 4 Hour Algorithm Breakouts
 
-A free, always-on website that scans the S&P 500 on 4-hour candles four times each trading day, ranks every stock by momentum-breakout setup, and flags the top 3 breakouts.
+A free, always-on website that scans the S&P 500 on 4-hour candles twice each trading day, as each candle closes, ranks every stock by momentum-breakout setup, and flags the top 3 breakouts.
 
 - **The scan** runs on GitHub Actions on a schedule. It pulls candles from Twelve Data, scores each stock, and saves `docs/data/latest.json`.
 - **The website** is GitHub Pages serving `docs/`. It reads the latest results, so anyone with the link sees them without logging in.
 - **Your Twelve Data API key** stays in GitHub's encrypted secrets. It never appears on the website.
 
-Cost: $0. Public repositories get unlimited Actions minutes, and 4 scans a day use 400 of the free Twelve Data plan's 800 daily calls.
+Cost: $0. Public repositories get unlimited Actions minutes, and if it falls back to Twelve Data, 2 scans a day use 200 of the free plan's 800 daily calls.
 
 ## Setup (about 10 minutes)
 
@@ -59,12 +59,12 @@ Scans run on weekdays during US market hours, at these New York times:
 
 | New York | Arizona (until Nov 1) | Arizona (Nov 1 – Mar 7) | Why |
 |---|---|---|---|
-| 11:35 AM | 8:35 AM | 9:35 AM | Mid-morning |
-| 1:35 PM | 10:35 AM | 11:35 AM | First 4-hour candle has just closed |
-| 3:35 PM | 12:35 PM | 1:35 PM | Last half hour of trading |
-| 4:20 PM | 1:20 PM | 2:20 PM | After the close, once the day's final candle is available |
+| 1:50 PM | 10:50 AM | 11:50 AM | The 9:30–1:30 candle has closed (data is 15 minutes delayed) |
+| 4:20 PM | 1:20 PM | 2:20 PM | The 1:30–4:00 candle has closed |
 
-NYSE holidays and weekends are skipped, and New York daylight saving time is handled automatically. Each scan takes about 13 minutes, so results appear roughly 15 minutes after the start time. Four scans a day use 400 of the free plan's 800 daily Twelve Data calls, leaving room for manual runs.
+Traders on 4-hour charts act on closed candles: until a candle closes, its price, volume, RSI and MACD are still moving, and a breakout can disappear by the close. US stocks make only two 4-hour candles a day, so the scan runs once after each. Any candle that hasn't closed yet is ignored, so a late start never scores a half-formed candle.
+
+NYSE holidays and weekends are skipped, and New York daylight saving time is handled automatically. Each scan takes about 13 minutes, so results appear roughly 15 minutes after the start time. On the Twelve Data fallback, two scans a day use 200 of the free plan's 800 daily calls.
 
 You can still scan any time from **Actions → Scan and publish → Run workflow**.
 

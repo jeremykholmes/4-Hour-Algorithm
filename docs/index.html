@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>4 Hour Algorithm Breakouts</title>
-<meta name="description" content="Momentum-breakout scan on 4-hour candles across the S&amp;P 500, refreshed through the trading day. The top 3 breakouts each scan.">
+<meta name="description" content="Momentum-breakout scan on 4-hour candles across the S&amp;P 500, refreshed as each 4-hour candle closes. The top 3 breakouts each scan.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232c49c7'/%3E%3Cpath d='M6 22l6-6 4 4 9-10' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -133,7 +133,7 @@ footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padd
     <div>
       <a class="logo" href="./" aria-label="4 Hour Algorithm Breakouts, home"><span class="dot" aria-hidden="true"></span><span class="tk">4HR BRKO</span><span class="lp">4.00</span><span class="ch"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 1l4.5 8h-9z"/></svg>+4.00%</span></a>
       <h1>4 Hour Algorithm Breakouts</h1>
-      <p>Momentum-breakout scan on 4-hour candles across <span id="universe">100 of the largest US stocks</span>. Ranked by a 0–100 setup score and refreshed automatically four times each trading day. Only the 3 highest-scoring breakouts are flagged each scan.</p>
+      <p>Momentum-breakout scan on 4-hour candles across <span id="universe">100 of the largest US stocks</span>. Ranked by a 0–100 setup score and refreshed twice each trading day, right after each 4-hour candle closes. Only the 3 highest-scoring breakouts are flagged each scan.</p>
       <p><a href="performance.html" style="color:var(--accent);font-weight:600">See how past breakouts performed →</a></p>
     </div>
     <div class="label" id="asof"></div>
@@ -184,7 +184,7 @@ footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padd
       <div><strong>Momentum · 30 pts</strong><p>RSI(14) between 55 and 72 scores full marks. MACD histogram above zero and rising adds the rest.</p></div>
       <div><strong>Volume · 20 pts</strong><p>Last bar's volume versus its 20-bar average. 2× or more scores full marks. Over-extended moves (more than 3 ATR above the 20 EMA) lose 10.</p></div>
       <div><strong>Levels</strong><p>Entry is the last close. Stop is 2 ATR below. Target is 4 ATR above, a 2:1 reward-to-risk.</p></div>
-      <div><strong>Tiers</strong><p>Breakout: confirmed breakout and score 70+, and one of the 3 highest scores this scan; any other breakouts are listed as setting up. Setting up: 55+. Watch: 40+. A scan during market hours includes the bar still forming, so its volume reads low until it closes.</p></div>
+      <div><strong>Tiers</strong><p>Breakout: confirmed breakout and score 70+, and one of the 3 highest scores this scan; any other breakouts are listed as setting up. Setting up: 55+. Watch: 40+. Only closed candles are scored: the 9:30–1:30 candle at about 2 PM ET and the 1:30–4:00 candle after the close.</p></div>
     </div>
   </section>
 
@@ -200,7 +200,7 @@ footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padd
 const DATA_URL = "data/latest.json";
 // Must match the cron lines in .github/workflows/scan.yml.
 // Weekday scan start times in New York time, [hour, minute]; NYSE holidays are skipped.
-const SLOTS = [[11,35],[13,35],[15,35],[16,20]];
+const SLOTS = [[13,50],[16,20]];
 const HOLIDAYS = ["2026-11-26","2026-12-25","2027-01-01","2027-01-18","2027-02-15","2027-03-26","2027-05-31","2027-06-18","2027-07-05","2027-09-06","2027-11-25","2027-12-24"];
 let SCAN_MINUTES = 15; // a Twelve Data scan takes ~13 min after it starts; Alpaca ~3 (set from the data)
 const TIERS = [["breakout","Breakouts","--up"],["setup","Setting up","--accent"],["watch","Watch","--warn"],["none","No signal","--muted"]];
