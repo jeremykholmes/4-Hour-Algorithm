@@ -1,6 +1,6 @@
 # 4 Hour Algorithm Breakouts
 
-A free, always-on website that scans 100 of the largest US stocks on 4-hour candles four times each trading day and ranks them by momentum-breakout setup.
+A free, always-on website that scans the S&P 500 on 4-hour candles four times each trading day, ranks every stock by momentum-breakout setup, and flags the top 3 breakouts.
 
 - **The scan** runs on GitHub Actions on a schedule. It pulls candles from Twelve Data, scores each stock, and saves `docs/data/latest.json`.
 - **The website** is GitHub Pages serving `docs/`. It reads the latest results, so anyone with the link sees them without logging in.
@@ -41,6 +41,18 @@ The link also appears on the finished run's **deploy** step and under **Settings
 
 After that it runs on its own.
 
+## Data: Alpaca (S&P 500) or Twelve Data (100 stocks)
+
+With Alpaca keys set, each scan covers the full S&P 500 (`sp500.txt`, plus anything in `symbols.txt`) and takes about a minute. Alpaca's free plan allows 200 calls a minute and serves full-market data once it is 15 minutes old, which is why the after-close scan runs at 4:20 PM. Without Alpaca keys, the scan falls back to Twelve Data and the 100 stocks in `symbols.txt`.
+
+To set up Alpaca (free, no deposit):
+1. Sign up at alpaca.markets. A paper-trading account is enough.
+2. In the dashboard, generate an API key. Copy the key ID and the secret (the secret is shown only once).
+3. In this repository: **Settings → Secrets and variables → Actions → New repository secret**. Add `ALPACA_API_KEY_ID` and `ALPACA_API_SECRET_KEY`.
+4. **Actions → Scan and publish → Run workflow** to test it. The page header changes to "the S&P 500" when it works.
+
+Only the 3 highest-scoring breakouts keep the Breakout label each scan; any others show as Setting up.
+
 ## Schedule
 
 Scans run on weekdays during US market hours, at these New York times:
@@ -50,7 +62,7 @@ Scans run on weekdays during US market hours, at these New York times:
 | 11:35 AM | 8:35 AM | 9:35 AM | Mid-morning |
 | 1:35 PM | 10:35 AM | 11:35 AM | First 4-hour candle has just closed |
 | 3:35 PM | 12:35 PM | 1:35 PM | Last half hour of trading |
-| 4:05 PM | 1:05 PM | 2:05 PM | Just after the close, so the day's final candle is scored |
+| 4:20 PM | 1:20 PM | 2:20 PM | After the close, once the day's final candle is available |
 
 NYSE holidays and weekends are skipped, and New York daylight saving time is handled automatically. Each scan takes about 13 minutes, so results appear roughly 15 minutes after the start time. Four scans a day use 400 of the free plan's 800 daily Twelve Data calls, leaving room for manual runs.
 
@@ -90,5 +102,5 @@ For research and education only. Not investment advice. Signals are mechanical a
 
 `docs/performance.html` (linked from the main page) lists every stock the scan has flagged as a breakout, with the date it was added, the breakout price, the recommended stop and sell limit, and its return 1 week, 1 month, 2 months, 6 months and 1 year later.
 
-- After every scan, `scripts/track.mjs` adds that scan's breakouts to `docs/data/breakouts.json` (no API calls). A stock flagged again within 7 days isn't added twice.
-- After the 4:05 PM scan (and on manual runs) it also fetches daily closes from Twelve Data, one call per stock that still has an open holding period, and fills in each return once its date has passed. It also fetches SPY (one call) so every return is compared with the S&P 500 over the same days. At most about 100 extra calls a day, so the total stays under the free plan's 800.
+- After every scan, `scripts/track.mjs` adds that scan's breakouts to `docs/data/breakouts.json`, keeping at most the 3 highest-scoring per day. A stock flagged again within 7 days isn't added twice.
+- With Alpaca it refreshes daily closes after every scan in a single call. With Twelve Data it does so after the 4:20 PM scan (and on manual runs), one call per stock that still has an open holding period, and fills in each return once its date has passed. It also fetches SPY (one call) so every return is compared with the S&P 500 over the same days. At most about 100 extra calls a day, so the total stays under the free plan's 800.

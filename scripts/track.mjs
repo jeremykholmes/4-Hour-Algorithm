@@ -11,6 +11,8 @@
 // Rules
 // - Breakout date = trading day of the scan's latest candle. Breakout price = the
 //   scan's entry price the first time the stock was flagged.
+// - At most 3 breakouts a day: the day's highest-scoring ones across all scans.
+//   A later scan can replace an earlier, lower-scoring pick from the same day.
 // - A stock flagged again within 7 calendar days of its last entry is not added twice.
 // - Each horizon uses the daily close on the first trading day on or after
 //   the breakout date + 7 days / 1 / 2 / 6 / 12 months.
@@ -21,11 +23,13 @@
 //   fetch shows a different (split-adjusted) close for that day, the breakout price
 //   is scaled by the same factor.
 //
-// Env: TWELVE_DATA_API_KEY, CALLS_PER_MINUTE (default 8)
+// Env: ALPACA_API_KEY_ID + ALPACA_API_SECRET_KEY (preferred; one call for every stock),
+//      or TWELVE_DATA_API_KEY + CALLS_PER_MINUTE (one call per stock, default 8/min)
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { alpacaBars } from "./scan.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "docs", "data", "breakouts.json");
@@ -36,6 +40,8 @@ const args = process.argv.slice(2);
 const PRICES = args.includes("--prices");
 const files = args.filter(a => !a.startsWith("--"));
 const REPEAT_DAYS = 7;
+const PER_DAY = 3;
+const ALPACA = !!(process.env.ALPACA_API_KEY_ID && process.env.ALPACA_API_SECRET_KEY);
 
 export const HORIZONS = [
   { key: "w1", label: "1 week", days: 7 },
@@ -73,7 +79,8 @@ function addFromSummary(db, summary) {
   const date = summary.lastCandle ? summary.lastCandle.slice(0, 10) : nyDate(summary.generatedAt);
   let added = 0;
   for (const b of summary.breakouts) {
-    const prev = db.entries.filter(e => e.sym === b.sym).sort((x, y) => x.date < y.date ? 1 : -1)[0];
+    if (db.entries.some(e => e.sym === b.sym && e.date === date)) continue;            // already today's pick
+    const prev = db.entries.filter(e => e.sym === b.sym && e.date < date).sort((x, y) => x.date < y.date ? 1 : -1)[0];
     if (prev && daysBetween(prev.date, date) < REPEAT_DAYS) continue;
     db.entries.push({
       sym: b.sym, date, seenAt: summary.generatedAt,
@@ -82,8 +89,19 @@ function addFromSummary(db, summary) {
     });
     added++;
   }
-  db.entries.sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : a.sym.localeCompare(b.sym));
+  capPerDay(db);
   return added;
+}
+
+// Keep each day's PER_DAY highest scores (ties go to the one flagged first).
+export function capPerDay(db, n = PER_DAY) {
+  const byDate = new Map();
+  for (const e of db.entries) byDate.set(e.date, (byDate.get(e.date) || []).concat(e));
+  const keep = new Set();
+  for (const list of byDate.values())
+    list.sort((a, b) => b.score - a.score || (a.seenAt < b.seenAt ? -1 : 1)).slice(0, n).forEach(e => keep.add(e));
+  db.entries = db.entries.filter(e => keep.has(e))
+    .sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : b.score - a.score || a.sym.localeCompare(b.sym));
 }
 
 // ---------- prices ----------
@@ -137,12 +155,33 @@ export function benchmark(entry, spy) {
   for (const h of HORIZONS) add(entry.perf[h.key]);
 }
 
+async function refreshAlpaca(db, bySym) {
+  const start = [...bySym.values()].flat().map(e => e.date).sort()[0] + "T00:00:00Z";
+  const end = new Date(Date.now() - 16 * 60e3).toISOString();
+  const raw = await alpacaBars([...bySym.keys(), "SPY"], "1Day", start, end);
+  const daily = list => (list || []).map(b => ({ d: nyDate(b.t), c: b.c })).filter(b => isFinite(b.c));
+  const spy = daily(raw.SPY);
+  let ok = 0;
+  for (const [sym, list] of bySym) {
+    const bars = daily(raw[sym]);
+    if (!bars.length) { console.log(`  ${sym.padEnd(6)} no daily bars`); continue; }
+    list.forEach(e => { score(e, bars); if (spy.length) benchmark(e, spy); });
+    ok++;
+  }
+  console.log(`Priced ${ok}/${bySym.size} stocks from Alpaca${spy.length ? " with SPY" : ""}.`);
+  if (ok) db.pricesUpdatedAt = new Date().toISOString();
+}
+
 async function refreshPrices(db) {
-  if (!KEY) { console.log("TWELVE_DATA_API_KEY not set, skipping price refresh."); return; }
+  if (!ALPACA && !KEY) { console.log("No data key set, skipping price refresh."); return; }
   const open = db.entries.filter(e => HORIZONS.some(h => !e.perf[h.key]));   // done once the 1-year mark is in
   const bySym = new Map();
   for (const e of open) bySym.set(e.sym, (bySym.get(e.sym) || []).concat(e));
   if (!bySym.size) { console.log("No open breakouts to price."); return; }
+  if (ALPACA) {
+    try { return await refreshAlpaca(db, bySym); }
+    catch (e) { console.log(`Alpaca price refresh failed: ${e.message}`); if (!KEY) return; }
+  }
   const gap = 60000 / PACE + 200;
   console.log(`Pricing ${bySym.size} stocks, waiting 60s first so the scan's per-minute limit resets.`);
   await sleep(60000);

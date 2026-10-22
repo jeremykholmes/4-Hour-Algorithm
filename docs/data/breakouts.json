@@ -3,20 +3,20 @@
  "pricesUpdatedAt": "2026-10-22T02:24:20.434Z",
  "entries": [
   {
-   "sym": "AXP",
+   "sym": "DHR",
    "date": "2026-10-21",
-   "seenAt": "2026-10-21T16:21:19.163Z",
-   "price": 323.87,
-   "score": 73,
-   "stop": 316.14,
-   "target": 339.32,
-   "refClose": 323.61,
+   "seenAt": "2026-10-21T20:14:53.519Z",
+   "price": 234.1,
+   "score": 80,
+   "stop": 224.63,
+   "target": 253.05,
+   "refClose": 233.86,
    "last": {
     "date": "2026-10-21",
-    "close": 323.61,
-    "pct": -0.08,
+    "close": 233.86,
+    "pct": -0.1,
     "spy": 0,
-    "vs": -0.08
+    "vs": -0.1
    },
    "perf": {},
    "spyRef": 773.09
@@ -41,80 +41,23 @@
    "spyRef": 773.09
   },
   {
-   "sym": "DHR",
-   "date": "2026-10-21",
-   "seenAt": "2026-10-21T20:14:53.519Z",
-   "price": 234.1,
-   "score": 80,
-   "stop": 224.63,
-   "target": 253.05,
-   "refClose": 233.86,
-   "last": {
-    "date": "2026-10-21",
-    "close": 233.86,
-    "pct": -0.1,
-    "spy": 0,
-    "vs": -0.1
-   },
-   "perf": {},
-   "spyRef": 773.09
-  },
-  {
-   "sym": "PEP",
+   "sym": "AXP",
    "date": "2026-10-21",
    "seenAt": "2026-10-21T16:21:19.163Z",
-   "price": 135.1,
+   "price": 323.87,
    "score": 73,
-   "stop": 131.67,
-   "target": 141.98,
-   "refClose": 134.7,
+   "stop": 316.14,
+   "target": 339.32,
+   "refClose": 323.61,
    "last": {
     "date": "2026-10-21",
-    "close": 134.7,
-    "pct": -0.3,
+    "close": 323.61,
+    "pct": -0.08,
     "spy": 0,
-    "vs": -0.3
+    "vs": -0.08
    },
    "perf": {},
    "spyRef": 773.09
-  },
-  {
-   "sym": "VRTX",
-   "date": "2026-10-21",
-   "seenAt": "2026-10-21T18:14:38.551Z",
-   "price": 521.05,
-   "score": 70,
-   "stop": 504.89,
-   "target": 553.39,
-   "refClose": 524.52,
-   "last": {
-    "date": "2026-10-21",
-    "close": 524.52,
-    "pct": 0.67,
-    "spy": 0,
-    "vs": 0.67
-   },
-   "perf": {},
-   "spyRef": 773.09
-  },
-  {
-   "sym": "ADBE",
-   "date": "2026-10-20",
-   "seenAt": "2026-10-21T04:43:47.217Z",
-   "price": 256.78,
-   "score": 75,
-   "stop": 246.1,
-   "target": 278.15,
-   "refClose": 256.73,
-   "last": {
-    "date": "2026-10-21",
-    "close": 255.06,
-    "pct": -0.67,
-    "spy": 0.53,
-    "vs": -1.2
-   },
-   "perf": {},
-   "spyRef": 769.05
   },
   {
    "sym": "IBM",
@@ -131,6 +74,25 @@
     "pct": 3.9,
     "spy": 0.53,
     "vs": 3.37
+   },
+   "perf": {},
+   "spyRef": 769.05
+  },
+  {
+   "sym": "ADBE",
+   "date": "2026-10-20",
+   "seenAt": "2026-10-21T04:43:47.217Z",
+   "price": 256.78,
+   "score": 75,
+   "stop": 246.1,
+   "target": 278.15,
+   "refClose": 256.73,
+   "last": {
+    "date": "2026-10-21",
+    "close": 255.06,
+    "pct": -0.67,
+    "spy": 0.53,
+    "vs": -1.2
    },
    "perf": {},
    "spyRef": 769.05

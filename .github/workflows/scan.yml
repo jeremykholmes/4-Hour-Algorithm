@@ -4,15 +4,16 @@ on:
   schedule:
     # US market hours only, weekdays, in New York time:
     #   11:35 AM, 1:35 PM (first 4-hour candle closes), 3:35 PM,
-    #   and 4:05 PM (just after the close, so the day's final candle is scored).
+    #   and 4:20 PM (after the close; Alpaca's free plan serves full-market data once it's
+    #   15 minutes old, so this is the first scan that includes the day's final candle).
     # GitHub cron runs in UTC, so each time is listed for both daylight time
     # (EDT, UTC-4) and standard time (EST, UTC-5). The "gate" job below
     # skips whichever set doesn't match today's New York offset, and skips
     # NYSE holidays. If you change these, update SLOTS in docs/index.html.
     - cron: "35 15,17,19 * * 1-5"   # EDT: 11:35, 13:35, 15:35
-    - cron: "5 20 * * 1-5"          # EDT: 16:05
+    - cron: "20 20 * * 1-5"         # EDT: 16:20
     - cron: "35 16,18,20 * * 1-5"   # EST: 11:35, 13:35, 15:35
-    - cron: "5 21 * * 1-5"          # EST: 16:05
+    - cron: "20 21 * * 1-5"         # EST: 16:20
   workflow_dispatch: {}   # adds a "Run workflow" button on the Actions tab
   push:                   # republish the site when you edit the page
     branches: [main]
@@ -41,7 +42,7 @@ jobs:
           offset=$(TZ=America/New_York date +%z)
           today=$(TZ=America/New_York date +%F)
           case "$SCHED" in
-            "35 15,17,19 * * 1-5"|"5 20 * * 1-5") want="-0400" ;;
+            "35 15,17,19 * * 1-5"|"20 20 * * 1-5") want="-0400" ;;
             *) want="-0500" ;;
           esac
           # NYSE full-day holidays
@@ -68,21 +69,25 @@ jobs:
 
       - name: Run scan
         env:
+          ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
+          ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
           TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
           CALLS_PER_MINUTE: ${{ vars.CALLS_PER_MINUTE || '8' }}
         run: node scripts/scan.mjs
 
       # Adds this scan's breakouts to the track record (docs/performance.html).
-      # Daily closes are refreshed once a day, after the 4:05 PM scan (and on manual runs),
-      # using one Twelve Data call per stock still being tracked.
+      # Daily closes are refreshed after every scan with Alpaca (a single call), or once a day
+      # after the close with Twelve Data (one call per stock still being tracked).
       - name: Track breakout performance
         env:
+          ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
+          ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
           TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
           CALLS_PER_MINUTE: ${{ vars.CALLS_PER_MINUTE || '8' }}
           EVENT: ${{ github.event_name }}
         run: |
           hour=$(TZ=America/New_York date +%-H)
-          if [ "$EVENT" = "workflow_dispatch" ] || [ "$hour" -ge 16 ]; then
+          if [ -n "$ALPACA_API_KEY_ID" ] || [ "$EVENT" = "workflow_dispatch" ] || [ "$hour" -ge 16 ]; then
             node scripts/track.mjs --prices
           else
             node scripts/track.mjs
