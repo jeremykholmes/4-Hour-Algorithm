@@ -138,19 +138,27 @@ async function alpacaGet(url) {
   }
   throw new Error("Alpaca rate limited repeatedly");
 }
-// Bars for many symbols at once, following page tokens. Returns { SYM: [{t,o,h,l,c,v}] } with UTC times.
+// Bars for each symbol, one symbol per request (following page tokens within that symbol).
+// Multi-symbol requests dropped data across page boundaries, so symbols are fetched one at a time,
+// paced under the free plan's 200 calls/minute. Returns { SYM: [{t,o,h,l,c,v}] } with UTC times.
+const ALPACA_GAP = 320;   // ms between calls, ~187/min
 export async function alpacaBars(symbols, timeframe, startIso, endIso) {
   const out = {};
-  for (let i = 0; i < symbols.length; i += 100) {
-    const batch = symbols.slice(i, i + 100);
+  let last = 0;
+  for (const sym of symbols) {
     let token = null, pages = 0;
     do {
-      const q = new URLSearchParams({ symbols: batch.join(","), timeframe, start: startIso, end: endIso, limit: "10000", adjustment: "split", feed: "sip", sort: "asc" });
+      const wait = last + ALPACA_GAP - Date.now(); if (wait > 0) await sleep(wait);
+      last = Date.now();
+      const q = new URLSearchParams({ symbols: sym, timeframe, start: startIso, end: endIso, limit: "10000", adjustment: "split", feed: "sip", sort: "asc" });
       if (token) q.set("page_token", token);
-      const body = await alpacaGet(`https://data.alpaca.markets/v2/stocks/bars?${q}`);
-      for (const [sym, list] of Object.entries(body.bars || {})) (out[sym] ||= []).push(...list);
+      let body;
+      try { body = await alpacaGet(`https://data.alpaca.markets/v2/stocks/bars?${q}`); }
+      catch (e) { if (e.fatal) throw e; console.log(`  ${sym.padEnd(6)} ${e.message}`); break; }
+      const list = (body.bars || {})[sym] || [];
+      (out[sym] ||= []).push(...list);
       token = body.next_page_token; pages++;
-    } while (token && pages < 200);
+    } while (token && pages < 20);
   }
   return out;
 }
@@ -168,6 +176,7 @@ export function toFourHour(raw) {
   return [...m.values()].sort((a, b) => a.t < b.t ? -1 : 1).slice(-BARS);
 }
 async function fetchAllAlpaca(syms) {
+  console.log(`  about ${Math.ceil(syms.length * ALPACA_GAP / 60000)} min at ${Math.floor(60000 / ALPACA_GAP)} calls/min`);
   const end = new Date(Date.now() - 16 * 60e3).toISOString();
   const start = new Date(Date.now() - 135 * 864e5).toISOString();   // ~90 trading days, 180 candles
   const raw = await alpacaBars(syms, "30Min", start, end);
@@ -262,6 +271,10 @@ async function main() {
   }
 
   const ok = results.filter(r => r.tier !== "error").length;
+  if (pre && ok < syms.length * 0.8) {
+    console.error(`Only ${ok} of ${syms.length} stocks returned enough Alpaca data, so the previous results were kept.`);
+    process.exit(1);
+  }
   const flagged = capBreakouts(results);
   if (flagged > TOP_BREAKOUTS) console.log(`${flagged} breakouts; kept the top ${TOP_BREAKOUTS}.`);
   if (ok === 0) {
