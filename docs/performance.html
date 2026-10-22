@@ -139,12 +139,12 @@ footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padd
       <div><strong>Breakout price</strong><p>The entry price shown on the board when the stock was first flagged. Scans during market hours use the latest price, not the day's close.</p></div>
       <div><strong>Stop and sell limit</strong><p>The levels recommended when the stock was flagged: a stop 2 ATR below the breakout price and a sell limit 4 ATR above it, a 2:1 reward-to-risk. Place them together as a bracket (OCO) order.</p></div>
       <div><strong>Holding periods</strong><p>Each return uses the daily close on the first trading day on or after the breakout date plus 7 days, or 1, 2, 6 or 12 calendar months. Until then the cell shows when it's due.</p></div>
-      <div><strong>Versus the S&amp;P 500</strong><p>Each return is compared with SPY, the S&amp;P 500 ETF, from its close on the breakout date to its close on the same end date. "vs SPY" is the stock's return minus SPY's, in percentage points. Green means the breakout beat the market.</p></div>
-      <div><strong>What's left out</strong><p>Returns are price only: no dividends, fees or taxes, and they assume you held through the period rather than exiting at the stop or sell limit. Prices are adjusted for stock splits. Updated once a day after the close.</p></div>
+      <div><strong>Versus the S&amp;P 500</strong><p>Each return is compared with SPY, the S&amp;P 500 ETF, from its close on the breakout date to its close on the same end date. "vs SPY" is the stock's return minus SPY's return, so +3.00% means the breakout did 3% better than the market. Green means the breakout beat the market.</p></div>
+      <div><strong>What's left out</strong><p>Returns are price only: no dividends, fees or taxes, and they assume you held through the period rather than exiting at the stop or sell limit. Prices are adjusted for stock splits and updated after every scan.</p></div>
     </div>
   </section>
 
-  <footer>For research and education only. Not investment advice. Past signals don't predict future results. Market data from Twelve Data.</footer>
+  <footer>For research and education only. Not investment advice. Past signals don't predict future results. Market data from Alpaca and Twelve Data.</footer>
 </div>
 
 <script>
@@ -155,7 +155,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const money = x => x == null ? "—" : x >= 1000 ? x.toLocaleString("en-US",{maximumFractionDigits:0}) : x.toFixed(2);
 const sign = x => (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x).toFixed(2) + "%";
-const pts = x => (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x).toFixed(2) + " pts";
+const pts = x => sign(x);   // difference vs SPY, shown as a percent
 const cls = x => x > 0.005 ? "up" : x < -0.005 ? "down" : "flat";
 const fmtDate = s => { const [y,m,d] = s.split("-").map(Number); return new Date(Date.UTC(y,m-1,d)).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric",timeZone:"UTC"}); };
 const fmtShort = s => { const [y,m,d] = s.split("-").map(Number); return new Date(Date.UTC(y,m-1,d)).toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC", year: y !== new Date().getFullYear() ? "numeric" : undefined}); };
