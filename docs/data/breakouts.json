@@ -1,0 +1,140 @@
+{
+ "updatedAt": "2026-10-22T02:25:24.457Z",
+ "pricesUpdatedAt": "2026-10-22T02:24:20.434Z",
+ "entries": [
+  {
+   "sym": "AXP",
+   "date": "2026-10-21",
+   "seenAt": "2026-10-21T16:21:19.163Z",
+   "price": 323.87,
+   "score": 73,
+   "stop": 316.14,
+   "target": 339.32,
+   "refClose": 323.61,
+   "last": {
+    "date": "2026-10-21",
+    "close": 323.61,
+    "pct": -0.08
+   },
+   "perf": {}
+  },
+  {
+   "sym": "COF",
+   "date": "2026-10-21",
+   "seenAt": "2026-10-21T16:21:19.163Z",
+   "price": 209.55,
+   "score": 75,
+   "stop": 202.51,
+   "target": 223.63,
+   "refClose": 206.66,
+   "last": {
+    "date": "2026-10-21",
+    "close": 206.66,
+    "pct": -1.38
+   },
+   "perf": {}
+  },
+  {
+   "sym": "DHR",
+   "date": "2026-10-21",
+   "seenAt": "2026-10-21T20:14:53.519Z",
+   "price": 234.1,
+   "score": 80,
+   "stop": 224.63,
+   "target": 253.05,
+   "refClose": 233.86,
+   "last": {
+    "date": "2026-10-21",
+    "close": 233.86,
+    "pct": -0.1
+   },
+   "perf": {}
+  },
+  {
+   "sym": "PEP",
+   "date": "2026-10-21",
+   "seenAt": "2026-10-21T16:21:19.163Z",
+   "price": 135.1,
+   "score": 73,
+   "stop": 131.67,
+   "target": 141.98,
+   "refClose": 134.7,
+   "last": {
+    "date": "2026-10-21",
+    "close": 134.7,
+    "pct": -0.3
+   },
+   "perf": {}
+  },
+  {
+   "sym": "VRTX",
+   "date": "2026-10-21",
+   "seenAt": "2026-10-21T18:14:38.551Z",
+   "price": 521.05,
+   "score": 70,
+   "stop": 504.89,
+   "target": 553.39,
+   "refClose": 524.52,
+   "last": {
+    "date": "2026-10-21",
+    "close": 524.52,
+    "pct": 0.67
+   },
+   "perf": {}
+  },
+  {
+   "sym": "ADBE",
+   "date": "2026-10-20",
+   "seenAt": "2026-10-21T04:43:47.217Z",
+   "price": 256.78,
+   "score": 75,
+   "stop": 246.1,
+   "target": 278.15,
+   "refClose": 256.73,
+   "last": {
+    "date": "2026-10-21",
+    "close": 255.06,
+    "pct": -0.67
+   },
+   "perf": {}
+  },
+  {
+   "sym": "IBM",
+   "date": "2026-10-20",
+   "seenAt": "2026-10-21T04:43:47.217Z",
+   "price": 242.02,
+   "score": 80,
+   "stop": 234.03,
+   "target": 258.01,
+   "refClose": 241.92,
+   "last": {
+    "date": "2026-10-21",
+    "close": 251.46,
+    "pct": 3.9
+   },
+   "perf": {}
+  }
+ ],
+ "horizons": [
+  {
+   "key": "w1",
+   "label": "1 week"
+  },
+  {
+   "key": "m1",
+   "label": "1 month"
+  },
+  {
+   "key": "m2",
+   "label": "2 months"
+  },
+  {
+   "key": "m6",
+   "label": "6 months"
+  },
+  {
+   "key": "y1",
+   "label": "1 year"
+  }
+ ]
+}

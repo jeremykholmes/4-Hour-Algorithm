@@ -85,3 +85,10 @@ Requires Node 18 or newer. No packages to install.
 ---
 
 For research and education only. Not investment advice. Signals are mechanical and ignore news, earnings dates and fundamentals.
+
+## Breakout track record
+
+`docs/performance.html` (linked from the main page) lists every stock the scan has flagged as a breakout, with the date it was added, the breakout price, and its return 1 week, 1 month, 2 months, 6 months and 1 year later.
+
+- After every scan, `scripts/track.mjs` adds that scan's breakouts to `docs/data/breakouts.json` (no API calls). A stock flagged again within 7 days isn't added twice.
+- After the 4:05 PM scan (and on manual runs) it also fetches daily closes from Twelve Data, one call per stock that still has an open holding period, and fills in each return once its date has passed. At most 100 extra calls a day, so the total stays under the free plan's 800.

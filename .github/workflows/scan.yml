@@ -72,11 +72,27 @@ jobs:
           CALLS_PER_MINUTE: ${{ vars.CALLS_PER_MINUTE || '8' }}
         run: node scripts/scan.mjs
 
+      # Adds this scan's breakouts to the track record (docs/performance.html).
+      # Daily closes are refreshed once a day, after the 4:05 PM scan (and on manual runs),
+      # using one Twelve Data call per stock still being tracked.
+      - name: Track breakout performance
+        env:
+          TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+          CALLS_PER_MINUTE: ${{ vars.CALLS_PER_MINUTE || '8' }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          hour=$(TZ=America/New_York date +%-H)
+          if [ "$EVENT" = "workflow_dispatch" ] || [ "$hour" -ge 16 ]; then
+            node scripts/track.mjs --prices
+          else
+            node scripts/track.mjs
+          fi
+
       - name: Save results to the repository
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/data/latest.json docs/data/summary.json
+          git add docs/data/latest.json docs/data/summary.json docs/data/breakouts.json
           if git diff --cached --quiet; then
             echo "No change in results."
             exit 0

@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Breakout Track Record · 4 Hour Algorithm</title>
+<meta name="description" content="How every stock flagged as a breakout has performed from its breakout price: 1 week, 1 month, 2 months, 6 months and 1 year later.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232c49c7'/%3E%3Cpath d='M6 22l6-6 4 4 9-10' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Same palette and type as the main board. Horizon summary cards, then one row per breakout. */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --surface-2:#eef1f6; --line:#d9dee7; --ink:#18202e; --muted:#5b6577;
+  --accent:#2c49c7; --accent-soft:#e3e8fb;
+  --up:#1a7f4b; --up-soft:#dcf1e5; --warn:#a86108; --warn-soft:#fbecd5; --down:#b42f2f; --down-soft:#f8dfdf;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1420; --surface:#161d2c; --surface-2:#1c2436; --line:#2a3449; --ink:#e6eaf2; --muted:#98a2b6;
+  --accent:#7d95ff; --accent-soft:#232f55;
+  --up:#4fcb8a; --up-soft:#173527; --warn:#f0b04f; --warn-soft:#3a2d16; --down:#f27b7b; --down-soft:#3d1d22; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+[hidden]{display:none!important}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+h1,h2{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(1.7rem,4vw,2.3rem);font-weight:800}
+h2{font-size:1.15rem;font-weight:700}
+a{color:var(--accent)}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.crumb{font-size:.9rem;font-weight:600;text-decoration:none}
+.crumb:hover{text-decoration:underline}
+header.top{display:flex;flex-direction:column;gap:6px}
+header.top p{margin:0;color:var(--muted);max-width:68ch}
+
+.control{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:14px 28px;align-items:center}
+.control .group{display:flex;flex-direction:column;gap:2px;min-width:0}
+.notice{border-radius:10px;padding:10px 14px;font-size:.92rem;background:var(--surface-2)}
+.notice.err{background:var(--down-soft)}
+
+.horizons{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.hz{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.hz .big{font-family:var(--f-display);font-size:1.7rem;font-weight:800;line-height:1.1}
+.hz .sub{font-size:.82rem;color:var(--muted);line-height:1.4}
+.hz .winbar{height:6px;border-radius:99px;background:var(--down-soft);overflow:hidden;margin-top:4px}
+.hz .winbar b{display:block;height:100%;background:var(--up)}
+
+.tablebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.tablebar input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 10px;width:200px;max-width:100%}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:860px;font-size:.9rem}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;background:var(--surface)}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+th[aria-sort] span::after{content:" ▾"}
+th[aria-sort="ascending"] span::after{content:" ▴"}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:0}
+td.sym{font-weight:700;font-family:var(--f-display);font-size:1rem}
+td .pc{display:inline-block;min-width:64px;padding:2px 8px;border-radius:6px;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:500}
+.pc.up{background:var(--up-soft);color:var(--up)}
+.pc.down{background:var(--down-soft);color:var(--down)}
+.pc.flat{background:var(--surface-2)}
+.due{font-size:.8rem;color:var(--muted)}
+td .px{display:block;font-size:.76rem;color:var(--muted);font-family:var(--f-mono)}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+
+.method{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;font-size:.9rem}
+.method p{margin:4px 0 0;color:var(--muted);max-width:65ch}
+footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:900px){.horizons{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.horizons{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="crumb" href="./">← 4 Hour Algorithm Breakouts</a>
+    <h1>Breakout track record</h1>
+    <p>Every stock the scan has flagged as a breakout, and how it has done since. Returns are measured from the breakout price to the closing price 1 week, 1 month, 2 months, 6 months and 1 year later.</p>
+  </header>
+
+  <section class="control" aria-label="Status">
+    <div class="group"><span class="label">Breakouts tracked</span><span class="num" id="count">—</span></div>
+    <div class="group"><span class="label">Tracking since</span><span class="num" id="since">—</span></div>
+    <div class="group"><span class="label">Prices updated</span><span class="num" id="updated">Loading…</span></div>
+  </section>
+
+  <div class="notice" id="notice" hidden></div>
+
+  <section style="display:flex;flex-direction:column;gap:10px" aria-label="Average return by holding period">
+    <h2>Average return by holding period</h2>
+    <div class="horizons" id="horizons"></div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <div class="tablebar">
+      <h2>Every breakout</h2>
+      <input type="search" id="search" placeholder="Filter by ticker" aria-label="Filter by ticker">
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-label="How it's measured">
+    <h2 style="margin-bottom:10px">How it's measured</h2>
+    <div class="method">
+      <div><strong>Date added</strong><p>The trading day of the scan that first flagged the stock as a breakout. A stock flagged again within 7 days isn't added a second time.</p></div>
+      <div><strong>Breakout price</strong><p>The entry price shown on the board when the stock was first flagged. Scans during market hours use the latest price, not the day's close.</p></div>
+      <div><strong>Holding periods</strong><p>Each return uses the daily close on the first trading day on or after the breakout date plus 7 days, or 1, 2, 6 or 12 calendar months. Until then the cell shows when it's due.</p></div>
+      <div><strong>What's left out</strong><p>Returns are price only: no dividends, fees or taxes, and they ignore the stop and target. Prices are adjusted for stock splits. Updated once a day after the close.</p></div>
+    </div>
+  </section>
+
+  <footer>For research and education only. Not investment advice. Past signals don't predict future results. Market data from Twelve Data.</footer>
+</div>
+
+<script>
+(() => {
+const DATA_URL = "data/breakouts.json";
+const HZ = [["w1","1 week"],["m1","1 month"],["m2","2 months"],["m6","6 months"],["y1","1 year"]];
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const money = x => x == null ? "—" : x >= 1000 ? x.toLocaleString("en-US",{maximumFractionDigits:0}) : x.toFixed(2);
+const sign = x => (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x).toFixed(2) + "%";
+const cls = x => x > 0.005 ? "up" : x < -0.005 ? "down" : "flat";
+const fmtDate = s => { const [y,m,d] = s.split("-").map(Number); return new Date(Date.UTC(y,m-1,d)).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric",timeZone:"UTC"}); };
+const fmtShort = s => { const [y,m,d] = s.split("-").map(Number); return new Date(Date.UTC(y,m-1,d)).toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC", year: y !== new Date().getFullYear() ? "numeric" : undefined}); };
+// Mirrors targetDate() in scripts/track.mjs.
+function due(date, key){
+  const [y,m,d] = date.split("-").map(Number);
+  if (key === "w1") return new Date(Date.UTC(y,m-1,d+7)).toISOString().slice(0,10);
+  const n = {m1:1,m2:2,m6:6,y1:12}[key];
+  const last = new Date(Date.UTC(y,m-1+n+1,0)).getUTCDate();
+  return new Date(Date.UTC(y,m-1+n,Math.min(d,last))).toISOString().slice(0,10);
+}
+
+const COLS = [
+  {key:"date", label:"Date added", get:e=>e.date},
+  {key:"sym", label:"Symbol", get:e=>e.sym},
+  {key:"price", label:"Breakout price", get:e=>e.price},
+  {key:"last", label:"Latest", get:e=>e.last ? e.last.pct : null},
+  ...HZ.map(([k,l]) => ({key:k, label:l, get:e=>e.perf && e.perf[k] ? e.perf[k].pct : null})),
+];
+let entries = [], sortKey = "date", asc = false;
+
+function pctCell(p, title){
+  return `<span class="pc ${cls(p.pct)}" title="${esc(title)}">${sign(p.pct)}</span>`;
+}
+function row(e){
+  const tds = [
+    `<td class="num">${fmtDate(e.date)}</td>`,
+    `<td class="sym">${esc(e.sym)}</td>`,
+    `<td class="num">${money(e.price)}</td>`,
+    e.last ? `<td>${pctCell(e.last, `Close ${money(e.last.close)} on ${fmtDate(e.last.date)}`)}<span class="px">${money(e.last.close)}</span></td>` : `<td class="due">—</td>`,
+  ];
+  for (const [k] of HZ){
+    const p = e.perf && e.perf[k];
+    tds.push(p ? `<td>${pctCell(p, `Close ${money(p.close)} on ${fmtDate(p.date)}`)}</td>` : `<td class="due">due ${fmtShort(due(e.date,k))}</td>`);
+  }
+  return `<tr>${tds.join("")}</tr>`;
+}
+
+function renderTable(){
+  const q = $("search").value.trim().toUpperCase();
+  const col = COLS.find(c => c.key === sortKey);
+  const list = entries.filter(e => !q || e.sym.includes(q)).sort((a,b) => {
+    const x = col.get(a), y = col.get(b);
+    if (x == null && y == null) return a.date < b.date ? 1 : -1;
+    if (x == null) return 1; if (y == null) return -1;   // pending always last
+    const r = typeof x === "string" ? x.localeCompare(y) : x - y;
+    return (asc ? r : -r) || (a.sym < b.sym ? -1 : 1);
+  });
+  $("thead").innerHTML = COLS.map(c => `<th scope="col" data-k="${c.key}"${c.key===sortKey?` aria-sort="${asc?"ascending":"descending"}"`:""}><span>${c.label}</span></th>`).join("");
+  $("tbody").innerHTML = list.length ? list.map(row).join("") : `<tr><td colspan="${COLS.length}" class="empty">${entries.length ? "No breakouts match that ticker." : "No breakouts recorded yet. They're added automatically after each scan."}</td></tr>`;
+}
+
+function renderHorizons(){
+  $("horizons").innerHTML = HZ.map(([k,l]) => {
+    const done = entries.filter(e => e.perf && e.perf[k]).map(e => e.perf[k].pct);
+    const pending = entries.length - done.length;
+    if (!done.length){
+      const next = entries.map(e => due(e.date,k)).sort()[0];
+      return `<div class="hz"><span class="label">${l}</span><span class="big muted">—</span><span class="sub">${entries.length ? `First result ${fmtShort(next)}` : "No breakouts yet"}</span></div>`;
+    }
+    const avg = done.reduce((s,x)=>s+x,0)/done.length;
+    const wins = done.filter(x => x > 0).length, wr = Math.round(wins/done.length*100);
+    const med = [...done].sort((a,b)=>a-b)[Math.floor((done.length-1)/2)];
+    return `<div class="hz"><span class="label">${l}</span>
+      <span class="big num ${cls(avg)}" style="color:var(--${avg>0.005?"up":avg<-0.005?"down":"ink"})">${sign(avg)}</span>
+      <span class="sub">${wr}% higher · median ${sign(med)}<br>${done.length} complete${pending?` · ${pending} pending`:""}</span>
+      <div class="winbar" title="${wins} of ${done.length} higher"><b style="width:${wr}%"></b></div></div>`;
+  }).join("");
+}
+
+async function load(){
+  try {
+    const res = await fetch(DATA_URL + "?t=" + Date.now(), {cache:"no-store"});
+    if (res.status === 404) { entries = []; $("updated").textContent = "Not yet"; render(); return; }
+    if (!res.ok) throw new Error(res.status);
+    const db = await res.json();
+    entries = db.entries || [];
+    $("updated").textContent = db.pricesUpdatedAt ? new Date(db.pricesUpdatedAt).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}) : "Not yet";
+    render();
+  } catch (e) {
+    $("notice").textContent = "Couldn't load the track record. Try reloading the page.";
+    $("notice").className = "notice err"; $("notice").hidden = false;
+    $("updated").textContent = "—";
+  }
+}
+function render(){
+  $("count").textContent = entries.length;
+  $("since").textContent = entries.length ? fmtDate(entries.map(e=>e.date).sort()[0]) : "—";
+  renderHorizons(); renderTable();
+}
+
+$("thead").addEventListener("click", ev => {
+  const th = ev.target.closest("th"); if (!th) return;
+  const k = th.dataset.k;
+  if (k === sortKey) asc = !asc; else { sortKey = k; asc = k === "sym"; }
+  renderTable();
+});
+$("search").addEventListener("input", renderTable);
+load();
+})();
+</script>
+</body>
+</html>
