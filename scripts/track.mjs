@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Breakout track record.
 // Records every stock the scan flags as a breakout and measures how it did
-// from the breakout price 1 week, 1 month, 2 months, 6 months and 1 year later.
+// from the breakout price 1, 2 and 3 weeks and 1, 2, 6 and 12 months later.
 // Writes docs/data/breakouts.json for docs/performance.html.
 //
 //   node scripts/track.mjs                     add breakouts from docs/data/summary.json (no API calls)
@@ -45,6 +45,8 @@ const ALPACA = !!(process.env.ALPACA_API_KEY_ID && process.env.ALPACA_API_SECRET
 
 export const HORIZONS = [
   { key: "w1", label: "1 week", days: 7 },
+  { key: "w2", label: "2 weeks", days: 14 },
+  { key: "w3", label: "3 weeks", days: 21 },
   { key: "m1", label: "1 month", months: 1 },
   { key: "m2", label: "2 months", months: 2 },
   { key: "m6", label: "6 months", months: 6 },
