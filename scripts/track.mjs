@@ -187,6 +187,46 @@ async function refreshAlpaca(db, bySym) {
   if (ok) db.pricesUpdatedAt = new Date().toISOString();
 }
 
+// ---------- market indexes, year to date ----------
+// Alpaca and Twelve Data's free plans don't serve the indexes themselves, so each is
+// tracked through an ETF that follows it. YTD = price change from the ETF's last close
+// of the previous year to its latest close (price only, like the index levels people quote).
+export const INDEXES = [
+  { name: "Dow Jones", sym: "DIA" },
+  { name: "S&P 500", sym: "SPY" },
+  { name: "NASDAQ Composite", sym: "ONEQ" },
+];
+export function ytd(bars, year) {
+  const base = bars.filter(b => b.d < `${year}-01-01`).pop();
+  const last = bars[bars.length - 1];
+  if (!base || !last || last.d < `${year}-01-01`) return null;
+  return { baseDate: base.d, base: px(base.c), date: last.d, close: px(last.c), pct: pct(last.c, base.c) };
+}
+async function refreshIndexes(db) {
+  if (!ALPACA && !KEY) return;
+  const year = +nyDate(Date.now()).slice(0, 4);
+  const start = `${year - 1}-12-15`;
+  let series = {};
+  if (ALPACA) {
+    try {
+      const raw = await alpacaBars(INDEXES.map(i => i.sym), "1Day", start + "T00:00:00Z", new Date(Date.now() - 16 * 60e3).toISOString());
+      for (const i of INDEXES) series[i.sym] = (raw[i.sym] || []).map(b => ({ d: nyDate(b.t), c: b.c })).filter(b => isFinite(b.c));
+    } catch (e) { console.log(`Alpaca index refresh failed: ${e.message}`); }
+  }
+  if (KEY) {
+    for (const i of INDEXES) {
+      if (series[i.sym] && series[i.sym].length) continue;
+      await sleep(60000 / PACE + 200);
+      try { series[i.sym] = await fetchDaily(i.sym, start); }
+      catch (e) { console.log(`  ${i.sym.padEnd(6)} index error: ${e.message}`); }
+    }
+  }
+  const items = INDEXES.map(i => { const y = series[i.sym] && ytd(series[i.sym], year); return y ? { ...i, ...y } : null; });
+  if (items.some(x => !x)) { console.log("Index YTD: missing data, keeping the previous figures."); return; }
+  db.indexes = { year, updatedAt: new Date().toISOString(), items };
+  console.log("Index YTD: " + items.map(i => `${i.name} ${i.pct}%`).join(", "));
+}
+
 async function refreshPrices(db) {
   if (!ALPACA && !KEY) { console.log("No data key set, skipping price refresh."); return; }
   const open = db.entries.filter(e => HORIZONS.some(h => !e.perf[h.key]));   // done once the 1-year mark is in
@@ -242,6 +282,7 @@ async function main() {
   console.log(`Added ${added} new breakout${added === 1 ? "" : "s"}; tracking ${db.entries.length}.`);
   if (PRICES) {
     await refreshPrices(db);
+    await refreshIndexes(db);
     // A price refresh can show an earlier pick has just hit its sell limit, which frees
     // the stock to be added again from this scan.
     const more = addAll();

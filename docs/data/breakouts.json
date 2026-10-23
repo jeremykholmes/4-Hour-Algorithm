@@ -184,5 +184,38 @@
    "key": "y1",
    "label": "1 year"
   }
- ]
+ ],
+ "indexes": {
+  "year": 2026,
+  "updatedAt": "2026-10-23T03:30:00.000Z",
+  "items": [
+   {
+    "name": "Dow Jones",
+    "sym": "DIA",
+    "baseDate": "2025-12-31",
+    "base": 480.57,
+    "date": "2026-10-22",
+    "close": 527.89,
+    "pct": 9.85
+   },
+   {
+    "name": "S&P 500",
+    "sym": "SPY",
+    "baseDate": "2025-12-31",
+    "base": 681.92,
+    "date": "2026-10-22",
+    "close": 763.96,
+    "pct": 12.03
+   },
+   {
+    "name": "NASDAQ Composite",
+    "sym": "ONEQ",
+    "baseDate": "2025-12-31",
+    "base": 91.4,
+    "date": "2026-10-22",
+    "close": 102.51,
+    "pct": 12.16
+   }
+  ]
+ }
 }

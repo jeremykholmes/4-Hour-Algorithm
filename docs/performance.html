@@ -90,6 +90,13 @@ td .vs{display:block;font-size:.74rem;font-family:var(--f-mono);margin-top:2px}
 .hz .bench{font-size:.82rem;line-height:1.4;padding-top:6px;margin-top:4px;border-top:1px solid var(--line)}
 .hz .bench b{font-family:var(--f-mono);font-weight:500}
 .hz .bench .up{color:var(--up)} .hz .bench .down{color:var(--down)}
+.markets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.mk{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.mk .big{font-family:var(--f-display);font-size:1.6rem;font-weight:800;line-height:1.15}
+.mk .big.up{color:var(--up)} .mk .big.down{color:var(--down)}
+.mk .sub{font-size:.8rem;color:var(--muted);font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.markets-note{font-size:.8rem;color:var(--muted);margin:0}
+@media (max-width:560px){.markets{grid-template-columns:1fr}.mk{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 12px}.mk .label{flex-basis:100%}}
 .empty{padding:28px;text-align:center;color:var(--muted)}
 
 .method{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;font-size:.9rem}
@@ -116,6 +123,12 @@ footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padd
     <h1>Breakout track record</h1>
     <p>Every stock the scan has flagged as a breakout, and how it has done since. Returns are measured from the breakout price to the closing price 1, 2 and 3 weeks and 1, 2, 6 and 12 months later, and compared with the S&amp;P 500 (SPY) over the same days.</p>
   </header>
+
+  <section style="display:flex;flex-direction:column;gap:10px" aria-labelledby="mk-title" id="markets-wrap" hidden>
+    <h2 id="mk-title">Market, year to date</h2>
+    <div class="markets" id="markets"></div>
+    <p class="markets-note" id="markets-note"></p>
+  </section>
 
   <section class="control" aria-label="Status">
     <div class="group"><span class="label">Breakouts tracked</span><span class="num" id="count">—</span></div>
@@ -256,6 +269,7 @@ async function load(){
     if (!res.ok) throw new Error(res.status);
     const db = await res.json();
     entries = db.entries || [];
+    renderMarkets(db.indexes);
     $("updated").textContent = db.pricesUpdatedAt ? new Date(db.pricesUpdatedAt).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit",timeZoneName:"short"}) : "Not yet";
     render();
   } catch (e) {
@@ -263,6 +277,17 @@ async function load(){
     $("notice").className = "notice err"; $("notice").hidden = false;
     $("updated").textContent = "—";
   }
+}
+function renderMarkets(ix){
+  if (!ix || !Array.isArray(ix.items) || !ix.items.length) { $("markets-wrap").hidden = true; return; }
+  $("mk-title").textContent = `Market, ${ix.year} year to date`;
+  $("markets").innerHTML = ix.items.map(i => `<div class="mk">
+      <span class="label">${esc(i.name)}</span>
+      <span class="big num ${cls(i.pct)}">${sign(i.pct)}</span>
+      <span class="sub" title="${esc(i.sym)} close ${money(i.base)} on ${fmtDate(i.baseDate)}">${esc(i.sym)} ${money(i.base)} → ${money(i.close)}</span></div>`).join("");
+  const asOf = ix.items.map(i => i.date).sort().pop();
+  $("markets-note").textContent = `Price change from the last close of ${ix.year - 1} to the latest price on ${fmtDate(asOf)}, measured with the ETF that tracks each index (DIA, SPY, ONEQ). Updated after every scan.`;
+  $("markets-wrap").hidden = false;
 }
 function render(){
   $("count").textContent = entries.length;
