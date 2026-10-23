@@ -113,5 +113,5 @@ For research and education only. Not investment advice. Signals are mechanical a
 
 `docs/performance.html` (linked from the main page) lists every stock the scan has flagged as a breakout, with the date it was added, the breakout price, the recommended stop and sell limit, and its return 1, 2 and 3 weeks and 1, 2, 6 and 12 months later.
 
-- After every scan, `scripts/track.mjs` adds that scan's breakouts to `docs/data/breakouts.json`, keeping at most the 3 highest-scoring per day. A stock flagged again within 7 days isn't added twice.
+- After every scan, `scripts/track.mjs` adds that scan's breakouts to `docs/data/breakouts.json`, keeping at most the 3 highest-scoring per 4-hour candle (up to 6 a day: 3 from the midday scan, 3 from the after-close scan). A stock flagged again within 7 days isn't added twice.
 - With Alpaca it refreshes daily closes after every scan in a single call. With Twelve Data it does so after the 4:20 PM scan (and on manual runs), one call per stock that still has an open holding period, and fills in each return once its date has passed. It also fetches SPY (one call) so every return is compared with the S&P 500 over the same days. At most about 100 extra calls a day, so the total stays under the free plan's 800.

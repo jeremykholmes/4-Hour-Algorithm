@@ -11,8 +11,9 @@
 // Rules
 // - Breakout date = trading day of the scan's latest candle. Breakout price = the
 //   scan's entry price the first time the stock was flagged.
-// - At most 3 breakouts a day: the day's highest-scoring ones across all scans.
-//   A later scan can replace an earlier, lower-scoring pick from the same day.
+// - At most 3 breakouts per 4-hour candle, so up to 6 a day: the midday scan
+//   (09:30 candle) and the after-close scan (13:30 candle) each keep their own top 3.
+//   A rerun of the same candle can replace an earlier, lower-scoring pick for it.
 // - A stock flagged again within 7 calendar days of its last entry is not added twice.
 // - Each horizon uses the daily close on the first trading day on or after
 //   the breakout date + 7 days / 1 / 2 / 6 / 12 months.
@@ -79,13 +80,14 @@ function load() {
 function addFromSummary(db, summary) {
   if (!summary || summary.source !== "live" || !Array.isArray(summary.breakouts)) return 0;
   const date = summary.lastCandle ? summary.lastCandle.slice(0, 10) : nyDate(summary.generatedAt);
+  const candle = summary.lastCandle ? summary.lastCandle.slice(11, 16) : guessCandle({ date, seenAt: summary.generatedAt });
   let added = 0;
   for (const b of summary.breakouts) {
     if (db.entries.some(e => e.sym === b.sym && e.date === date)) continue;            // already today's pick
     const prev = db.entries.filter(e => e.sym === b.sym && e.date < date).sort((x, y) => x.date < y.date ? 1 : -1)[0];
     if (prev && daysBetween(prev.date, date) < REPEAT_DAYS) continue;
     db.entries.push({
-      sym: b.sym, date, seenAt: summary.generatedAt,
+      sym: b.sym, date, candle, seenAt: summary.generatedAt,
       price: b.entry, score: b.score, stop: b.stop, target: b.target,
       refClose: null, last: null, perf: {},
     });
@@ -95,10 +97,22 @@ function addFromSummary(db, summary) {
   return added;
 }
 
-// Keep each day's PER_DAY highest scores (ties go to the one flagged first).
+// Entries saved before the candle field existed: a scan seen before 4 PM New York
+// time on the breakout day can only have scored the 09:30 candle; later ones the 13:30.
+function guessCandle(e) {
+  const t = new Date(e.seenAt);
+  const hour = +t.toLocaleString("en-US", { timeZone: "America/New_York", hour: "numeric", hourCycle: "h23" });
+  return nyDate(t) === e.date && hour < 16 ? "09:30" : "13:30";
+}
+
+// Keep each candle's PER_DAY highest scores (ties go to the one flagged first).
 export function capPerDay(db, n = PER_DAY) {
   const byDate = new Map();
-  for (const e of db.entries) byDate.set(e.date, (byDate.get(e.date) || []).concat(e));
+  for (const e of db.entries) {
+    if (!e.candle) e.candle = guessCandle(e);
+    const k = e.date + " " + e.candle;
+    byDate.set(k, (byDate.get(k) || []).concat(e));
+  }
   const keep = new Set();
   for (const list of byDate.values())
     list.sort((a, b) => b.score - a.score || (a.seenAt < b.seenAt ? -1 : 1)).slice(0, n).forEach(e => keep.add(e));
