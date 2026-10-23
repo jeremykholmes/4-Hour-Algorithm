@@ -111,7 +111,7 @@ For research and education only. Not investment advice. Signals are mechanical a
 
 ## Breakout track record
 
-The top of the page shows the Dow Jones, S&P 500 and NASDAQ Composite year to date. The free data plans don't carry the indexes themselves, so each is measured with the ETF that tracks it (DIA, SPY, ONEQ): price change from the previous year's last close to the latest price, refreshed with the closes after every scan (3 extra calls on Twelve Data).
+The top of the page shows the Dow Jones, S&P 500 and NASDAQ 100 year to date. The free data plans don't carry the indexes themselves, so each is measured with the ETF that tracks it (DIA, SPY, QQQ): price change from the previous year's last close to the latest price, refreshed with the closes after every scan (3 extra calls on Twelve Data).
 
 `docs/performance.html` (linked from the main page) lists every stock the scan has flagged as a breakout, with the date it was added, the breakout price, the recommended stop and sell limit, and its return 1, 2 and 3 weeks and 1, 2, 6 and 12 months later.
 

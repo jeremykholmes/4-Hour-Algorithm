@@ -194,7 +194,7 @@ async function refreshAlpaca(db, bySym) {
 export const INDEXES = [
   { name: "Dow Jones", sym: "DIA" },
   { name: "S&P 500", sym: "SPY" },
-  { name: "NASDAQ Composite", sym: "ONEQ" },
+  { name: "NASDAQ 100", sym: "QQQ" },
 ];
 export function ytd(bars, year) {
   const base = bars.filter(b => b.d < `${year}-01-01`).pop();

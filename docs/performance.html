@@ -94,7 +94,6 @@ td .vs{display:block;font-size:.74rem;font-family:var(--f-mono);margin-top:2px}
 .mk{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
 .mk .big{font-family:var(--f-display);font-size:1.6rem;font-weight:800;line-height:1.15}
 .mk .big.up{color:var(--up)} .mk .big.down{color:var(--down)}
-.mk .sub{font-size:.8rem;color:var(--muted);font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .markets-note{font-size:.8rem;color:var(--muted);margin:0}
 @media (max-width:560px){.markets{grid-template-columns:1fr}.mk{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 12px}.mk .label{flex-basis:100%}}
 .empty{padding:28px;text-align:center;color:var(--muted)}
@@ -283,10 +282,9 @@ function renderMarkets(ix){
   $("mk-title").textContent = `Market, ${ix.year} year to date`;
   $("markets").innerHTML = ix.items.map(i => `<div class="mk">
       <span class="label">${esc(i.name)}</span>
-      <span class="big num ${cls(i.pct)}">${sign(i.pct)}</span>
-      <span class="sub" title="${esc(i.sym)} close ${money(i.base)} on ${fmtDate(i.baseDate)}">${esc(i.sym)} ${money(i.base)} → ${money(i.close)}</span></div>`).join("");
+      <span class="big num ${cls(i.pct)}" title="Measured with ${esc(i.sym)}">${sign(i.pct)}</span></div>`).join("");
   const asOf = ix.items.map(i => i.date).sort().pop();
-  $("markets-note").textContent = `Price change from the last close of ${ix.year - 1} to the latest price on ${fmtDate(asOf)}, measured with the ETF that tracks each index (DIA, SPY, ONEQ). Updated after every scan.`;
+  $("markets-note").textContent = `Price change from the last close of ${ix.year - 1} to the latest price on ${fmtDate(asOf)}, measured with the ETF that tracks each index (DIA, SPY, QQQ). Updated after every scan.`;
   $("markets-wrap").hidden = false;
 }
 function render(){
