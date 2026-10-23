@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-10-23T02:49:59.039Z",
+ "updatedAt": "2026-10-22T21:04:57.448Z",
  "pricesUpdatedAt": "2026-10-22T21:04:57.448Z",
  "entries": [
   {
@@ -19,21 +19,7 @@
     "vs": 0.92
    },
    "perf": {},
-   "spyRef": 763.36,
-   "candle": "09:30"
-  },
-  {
-   "sym": "OMC",
-   "date": "2026-10-22",
-   "candle": "13:30",
-   "seenAt": "2026-10-22T21:04:54.235Z",
-   "price": 82.63,
-   "score": 100,
-   "stop": 79.81,
-   "target": 88.27,
-   "refClose": null,
-   "last": null,
-   "perf": {}
+   "spyRef": 763.36
   },
   {
    "sym": "ROL",
@@ -52,8 +38,7 @@
     "vs": 0.4
    },
    "perf": {},
-   "spyRef": 762,
-   "candle": "09:30"
+   "spyRef": 762
   },
   {
    "sym": "URI",
@@ -72,34 +57,7 @@
     "vs": 0.42
    },
    "perf": {},
-   "spyRef": 762,
-   "candle": "09:30"
-  },
-  {
-   "sym": "EVRG",
-   "date": "2026-10-22",
-   "candle": "13:30",
-   "seenAt": "2026-10-22T21:04:54.235Z",
-   "price": 84.96,
-   "score": 95,
-   "stop": 83.28,
-   "target": 88.32,
-   "refClose": null,
-   "last": null,
-   "perf": {}
-  },
-  {
-   "sym": "LULU",
-   "date": "2026-10-22",
-   "candle": "13:30",
-   "seenAt": "2026-10-22T21:04:54.235Z",
-   "price": 104.06,
-   "score": 95,
-   "stop": 99.07,
-   "target": 114.05,
-   "refClose": null,
-   "last": null,
-   "perf": {}
+   "spyRef": 762
   },
   {
    "sym": "IQV",
@@ -118,8 +76,7 @@
     "vs": 1.75
    },
    "perf": {},
-   "spyRef": 773.09,
-   "candle": "13:30"
+   "spyRef": 773.09
   },
   {
    "sym": "DOV",
@@ -138,8 +95,7 @@
     "vs": -0.99
    },
    "perf": {},
-   "spyRef": 773.09,
-   "candle": "13:30"
+   "spyRef": 773.09
   },
   {
    "sym": "DHR",
@@ -158,8 +114,7 @@
     "vs": -0.68
    },
    "perf": {},
-   "spyRef": 773.09,
-   "candle": "13:30"
+   "spyRef": 773.09
   },
   {
    "sym": "IBM",
@@ -178,8 +133,7 @@
     "vs": 4.83
    },
    "perf": {},
-   "spyRef": 769.05,
-   "candle": "13:30"
+   "spyRef": 769.05
   },
   {
    "sym": "ADBE",
@@ -198,8 +152,7 @@
     "vs": 6.02
    },
    "perf": {},
-   "spyRef": 769.05,
-   "candle": "13:30"
+   "spyRef": 769.05
   }
  ],
  "horizons": [
