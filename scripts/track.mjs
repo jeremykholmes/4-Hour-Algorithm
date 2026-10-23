@@ -13,7 +13,11 @@
 //   scan's entry price the first time the stock was flagged.
 // - At most 3 breakouts a day: the day's highest-scoring ones across all scans.
 //   A later scan can replace an earlier, lower-scoring pick from the same day.
-// - A stock flagged again within 7 calendar days of its last entry is not added twice.
+// - A stock flagged again within 7 calendar days of its last entry is not added twice,
+//   unless that entry already hit its sell limit (target): then it can be added again.
+// - Exit: from the day after the breakout, the first day whose low reaches the stop or
+//   whose high reaches the target, like a bracket (OCO) order. A day that touches both
+//   counts as the stop, since daily bars can't show which came first.
 // - Each horizon uses the daily close on the first trading day on or after
 //   the breakout date + 7 days / 1 / 2 / 6 / 12 months.
 // - Benchmark: each return is compared with SPY (S&P 500 ETF) over the same days,
@@ -76,14 +80,15 @@ function load() {
   return { updatedAt: null, pricesUpdatedAt: null, entries: [] };
 }
 
-function addFromSummary(db, summary) {
+export function addFromSummary(db, summary) {
   if (!summary || summary.source !== "live" || !Array.isArray(summary.breakouts)) return 0;
   const date = summary.lastCandle ? summary.lastCandle.slice(0, 10) : nyDate(summary.generatedAt);
   let added = 0;
   for (const b of summary.breakouts) {
     if (db.entries.some(e => e.sym === b.sym && e.date === date)) continue;            // already today's pick
     const prev = db.entries.filter(e => e.sym === b.sym && e.date < date).sort((x, y) => x.date < y.date ? 1 : -1)[0];
-    if (prev && daysBetween(prev.date, date) < REPEAT_DAYS) continue;
+    const soldAtTarget = prev && prev.exit && prev.exit.type === "target" && prev.exit.date <= date;
+    if (prev && daysBetween(prev.date, date) < REPEAT_DAYS && !soldAtTarget) continue;
     db.entries.push({
       sym: b.sym, date, seenAt: summary.generatedAt,
       price: b.entry, score: b.score, stop: b.stop, target: b.target,
@@ -115,7 +120,7 @@ async function fetchDaily(sym, start) {
     try { body = await (await fetch(url, { headers: { "User-Agent": "breakout-board" } })).json(); }
     catch (e) { if (attempt < 2) { await sleep(5000); continue; } throw new Error(`Network error: ${e.message}`); }
     if (body && Array.isArray(body.values)) {
-      return body.values.map(v => ({ d: v.datetime.slice(0, 10), c: +v.close }))
+      return body.values.map(v => ({ d: v.datetime.slice(0, 10), c: +v.close, h: +v.high, l: +v.low }))
         .filter(b => isFinite(b.c)).sort((a, b) => a.d < b.d ? -1 : 1);
     }
     const code = body && body.code, msg = (body && body.message) || "Empty response";
@@ -133,11 +138,19 @@ export function score(entry, bars) {
     else if (Math.abs(onDate.c / entry.refClose - 1) > 0.2) {   // split since first fetch
       const f = onDate.c / entry.refClose;
       entry.price = px(entry.price * f); entry.stop = px(entry.stop * f); entry.target = px(entry.target * f);
+      if (entry.exit) entry.exit.price = px(entry.exit.price * f);
       entry.refClose = onDate.c;
     }
   }
   const after = bars.filter(b => b.d >= entry.date);
   if (after.length) { const l = after[after.length - 1]; entry.last = { date: l.d, close: px(l.c), pct: pct(l.c, entry.price) }; }
+  if (!entry.exit) {
+    for (const b of bars) {
+      if (b.d <= entry.date || !isFinite(b.h) || !isFinite(b.l)) continue;
+      if (b.l <= entry.stop) { entry.exit = { type: "stop", date: b.d, price: entry.stop }; break; }
+      if (b.h >= entry.target) { entry.exit = { type: "target", date: b.d, price: entry.target }; break; }
+    }
+  }
   for (const h of HORIZONS) {
     if (entry.perf[h.key]) continue;
     const t = targetDate(entry.date, h);
@@ -161,7 +174,7 @@ async function refreshAlpaca(db, bySym) {
   const start = [...bySym.values()].flat().map(e => e.date).sort()[0] + "T00:00:00Z";
   const end = new Date(Date.now() - 16 * 60e3).toISOString();
   const raw = await alpacaBars([...bySym.keys(), "SPY"], "1Day", start, end);
-  const daily = list => (list || []).map(b => ({ d: nyDate(b.t), c: b.c })).filter(b => isFinite(b.c));
+  const daily = list => (list || []).map(b => ({ d: nyDate(b.t), c: b.c, h: b.h, l: b.l })).filter(b => isFinite(b.c));
   const spy = daily(raw.SPY);
   let ok = 0;
   for (const [sym, list] of bySym) {
@@ -217,13 +230,23 @@ async function refreshPrices(db) {
 async function main() {
   const db = load();
   const sources = files.length ? files : [SUMMARY];
-  let added = 0;
-  for (const f of sources) {
-    try { added += addFromSummary(db, JSON.parse(readFileSync(f, "utf8"))); }
-    catch (e) { console.log(`Skipping ${f}: ${e.message}`); }
-  }
+  const addAll = () => {
+    let added = 0;
+    for (const f of sources) {
+      try { added += addFromSummary(db, JSON.parse(readFileSync(f, "utf8"))); }
+      catch (e) { console.log(`Skipping ${f}: ${e.message}`); }
+    }
+    return added;
+  };
+  let added = addAll();
   console.log(`Added ${added} new breakout${added === 1 ? "" : "s"}; tracking ${db.entries.length}.`);
-  if (PRICES) await refreshPrices(db);
+  if (PRICES) {
+    await refreshPrices(db);
+    // A price refresh can show an earlier pick has just hit its sell limit, which frees
+    // the stock to be added again from this scan.
+    const more = addAll();
+    if (more) console.log(`Added ${more} more after the price refresh (earlier pick hit its sell limit).`);
+  }
   db.updatedAt = new Date().toISOString();
   db.horizons = HORIZONS.map(h => ({ key: h.key, label: h.label }));
   writeFileSync(OUT, JSON.stringify(db, null, 1));
