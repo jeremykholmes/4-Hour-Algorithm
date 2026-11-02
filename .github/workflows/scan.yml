@@ -11,6 +11,7 @@ on:
     # (EDT, UTC-4) and standard time (EST, UTC-5). The "gate" job below
     # skips whichever set doesn't match today's New York offset, and skips
     # NYSE holidays. If you change these, update SLOTS in docs/index.html.
+    # (Edited Nov 2, 2026 to re-register the schedule after GitHub stopped firing it.)
     - cron: "50 17 * * 1-5"         # EDT: 13:50
     - cron: "20 20 * * 1-5"         # EDT: 16:20
     - cron: "50 18 * * 1-5"         # EST: 13:50
