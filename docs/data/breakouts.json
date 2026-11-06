@@ -1,6 +1,6 @@
 {
- "updatedAt": "2026-11-06T00:08:25.614Z",
- "pricesUpdatedAt": "2026-11-06T00:08:24.901Z",
+ "updatedAt": "2026-11-06T01:52:50.417Z",
+ "pricesUpdatedAt": "2026-11-06T01:52:49.655Z",
  "entries": [
   {
    "sym": "CHTR",
@@ -840,7 +840,7 @@
  ],
  "indexes": {
   "year": 2026,
-  "updatedAt": "2026-11-06T00:08:25.614Z",
+  "updatedAt": "2026-11-06T01:52:50.417Z",
   "items": [
    {
     "name": "Dow Jones",
