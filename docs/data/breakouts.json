@@ -1,6 +1,6 @@
 {
- "updatedAt": "2026-11-12T01:20:30.287Z",
- "pricesUpdatedAt": "2026-11-12T01:20:29.553Z",
+ "updatedAt": "2026-11-12T02:33:31.402Z",
+ "pricesUpdatedAt": "2026-11-12T02:33:30.706Z",
  "entries": [
   {
    "sym": "AAPL",
@@ -1154,7 +1154,7 @@
  ],
  "indexes": {
   "year": 2026,
-  "updatedAt": "2026-11-12T01:20:30.287Z",
+  "updatedAt": "2026-11-12T02:33:31.402Z",
   "items": [
    {
     "name": "Dow Jones",
