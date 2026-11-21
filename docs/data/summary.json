@@ -1,54 +1,53 @@
 {
- "generatedAt": "2026-11-20T02:34:14.168Z",
+ "generatedAt": "2026-11-21T00:31:14.939Z",
  "source": "live",
  "universe": "S&P 500",
- "lastCandle": "2026-11-19 13:30:00",
+ "lastCandle": "2026-11-20 13:30:00",
  "scored": 503,
  "requested": 503,
  "counts": {
-  "breakout": 1,
-  "setup": 4,
-  "watch": 12,
-  "none": 486
+  "breakout": 0,
+  "setup": 5,
+  "watch": 29,
+  "none": 469
  },
- "breakouts": [
-  {
-   "sym": "PCG",
-   "score": 88,
-   "price": 13.94,
-   "chg": 0.61,
-   "entry": 13.94,
-   "stop": 13.44,
-   "target": 14.92,
-   "rsi": 67,
-   "rvol": 1.23,
-   "distFromHigh": 0.4
-  }
- ],
+ "breakouts": [],
  "settingUp": [
   {
-   "sym": "PNR",
-   "score": 62,
-   "price": 68.7,
-   "chg": -0.9,
-   "entry": 68.7,
-   "stop": 66.14,
-   "target": 73.82,
-   "rsi": 56.1,
-   "rvol": 3.42,
-   "distFromHigh": -2.79
+   "sym": "WRB",
+   "score": 59,
+   "price": 78.31,
+   "chg": -1.13,
+   "entry": 78.31,
+   "stop": 76.12,
+   "target": 82.68,
+   "rsi": 59.8,
+   "rvol": 1.88,
+   "distFromHigh": -1.74
   },
   {
-   "sym": "EIX",
-   "score": 55,
-   "price": 63.01,
-   "chg": 0.27,
-   "entry": 63.01,
-   "stop": 61.15,
-   "target": 66.72,
-   "rsi": 70.3,
-   "rvol": 1.2,
-   "distFromHigh": -0.41
+   "sym": "GIS",
+   "score": 58,
+   "price": 35.74,
+   "chg": -0.9,
+   "entry": 35.74,
+   "stop": 34.18,
+   "target": 38.87,
+   "rsi": 58,
+   "rvol": 1.48,
+   "distFromHigh": -1.96
+  },
+  {
+   "sym": "WMT",
+   "score": 58,
+   "price": 128.02,
+   "chg": -1.22,
+   "entry": 128.02,
+   "stop": 124.02,
+   "target": 136.02,
+   "rsi": 57.3,
+   "rvol": 1.65,
+   "distFromHigh": -1.92
   },
   {
    "sym": "KVUE",
@@ -63,16 +62,16 @@
    "distFromHigh": -3.65
   },
   {
-   "sym": "PANW",
+   "sym": "VZ",
    "score": 55,
-   "price": 361.73,
-   "chg": 0.48,
-   "entry": 361.73,
-   "stop": 335.42,
-   "target": 414.36,
-   "rsi": 62.6,
-   "rvol": 1.89,
-   "distFromHigh": -2.24
+   "price": 46.53,
+   "chg": -0.59,
+   "entry": 46.53,
+   "stop": 45.18,
+   "target": 49.22,
+   "rsi": 57,
+   "rvol": 1.37,
+   "distFromHigh": -1.31
   }
  ],
  "failed": [],
